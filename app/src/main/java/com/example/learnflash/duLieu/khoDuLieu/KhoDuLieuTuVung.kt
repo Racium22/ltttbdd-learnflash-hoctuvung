@@ -24,6 +24,11 @@ class KhoDuLieuTuVung(
         return tuVungDao.layTuVungCanOnTap(thoiGianHienTai)
     }
 
+    // Truy vấn một từ vựng theo ID để phục vụ màn hình Sửa
+    suspend fun layTuVungTheoId(id: Int): TuVung? {
+        return tuVungDao.layTuVungTheoId(id)
+    }
+
     // Thực thi thao tác thêm hoặc cập nhật từ vựng vào Room Database
     suspend fun luuTuVung(tuVung: TuVung) {
         if (tuVung.id == 0) {

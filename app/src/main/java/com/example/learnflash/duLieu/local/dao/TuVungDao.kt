@@ -33,6 +33,10 @@ interface TuVungDao {
     @Delete
     suspend fun xoaTuVung(tuVung: TuVung)
 
+    // Lấy một từ vựng cụ thể theo khóa chính ID (dùng cho màn hình Sửa)
+    @Query("SELECT * FROM tu_vung WHERE id = :id LIMIT 1")
+    suspend fun layTuVungTheoId(id: Int): TuVung?
+
     // Trả về số lượng tổng số từ vựng hiện có
     @Query("SELECT COUNT(*) FROM tu_vung")
     fun demTongSoTuVung(): Flow<Int>
