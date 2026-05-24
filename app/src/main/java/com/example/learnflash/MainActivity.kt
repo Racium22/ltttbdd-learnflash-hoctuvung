@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import com.example.learnflash.dieuHuong.DieuHuongApp
 import com.example.learnflash.duLieu.khoDuLieu.KhoDuLieuTuVung
 import com.example.learnflash.duLieu.local.database.AppDatabase
+import com.example.learnflash.duLieu.local.dataStore.CaiDatDataStore
 import com.example.learnflash.duLieu.remote.api.TuVungApi
 import com.example.learnflash.tieuChuanGiaoDien.GiaoDienLearnFlash
 
@@ -32,10 +33,16 @@ class MainActivity : ComponentActivity() {
         // Bơm các phụ thuộc (Dependency Injection thủ công) vào Kho dữ liệu trung gian
         val khoDuLieu = KhoDuLieuTuVung(tuVungDao, lichSuDao, api)
 
+        // Khởi tạo DataStore quản lý cài đặt người dùng (Dark Mode, Mục tiêu học ngày)
+        val caiDatDataStore = CaiDatDataStore(this)
+
         // Cài đặt nội dung giao diện Jetpack Compose lên màn hình
         setContent {
             GiaoDienLearnFlash {
-                DieuHuongApp(khoDuLieu = khoDuLieu)
+                DieuHuongApp(
+                    khoDuLieu = khoDuLieu,
+                    caiDatDataStore = caiDatDataStore
+                )
             }
         }
     }

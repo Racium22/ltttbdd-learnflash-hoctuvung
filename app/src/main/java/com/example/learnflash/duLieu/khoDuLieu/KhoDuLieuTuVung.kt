@@ -15,19 +15,14 @@ class KhoDuLieuTuVung(
 ) {
 
     // Lấy toàn bộ từ vựng dưới dạng luồng dữ liệu (Flow) để UI phản ứng với thay đổi
-    fun layToanBoTuVung(): Flow<List<TuVung>> {
-        return tuVungDao.layToanBoTuVung()
-    }
+    fun layToanBoTuVung(): Flow<List<TuVung>> = tuVungDao.layToanBoTuVung()
 
     // Lấy danh sách từ vựng tới hạn ôn tập dựa trên thời gian hệ thống
-    fun layTuVungCanOnTap(thoiGianHienTai: Long): Flow<List<TuVung>> {
-        return tuVungDao.layTuVungCanOnTap(thoiGianHienTai)
-    }
+    fun layTuVungCanOnTap(thoiGianHienTai: Long): Flow<List<TuVung>> =
+        tuVungDao.layTuVungCanOnTap(thoiGianHienTai)
 
     // Truy vấn một từ vựng theo ID để phục vụ màn hình Sửa
-    suspend fun layTuVungTheoId(id: Int): TuVung? {
-        return tuVungDao.layTuVungTheoId(id)
-    }
+    suspend fun layTuVungTheoId(id: Int): TuVung? = tuVungDao.layTuVungTheoId(id)
 
     // Thực thi thao tác thêm hoặc cập nhật từ vựng vào Room Database
     suspend fun luuTuVung(tuVung: TuVung) {
@@ -39,25 +34,18 @@ class KhoDuLieuTuVung(
     }
 
     // Thực thi thao tác xóa từ vựng khỏi Room Database
-    suspend fun xoaTuVung(tuVung: TuVung) {
-        tuVungDao.xoaTuVung(tuVung)
-    }
+    suspend fun xoaTuVung(tuVung: TuVung) = tuVungDao.xoaTuVung(tuVung)
 
     // Thực thi thao tác tra cứu ý nghĩa trực tuyến qua Coroutines
     suspend fun traCuuTuVungTrucTuyen(tuKhoa: String): Result<TuVung> {
         return try {
             // Gọi HTTP GET để nhận phản hồi từ API
             val phanHoi = tuVungApi.traCuuTuVung(tuKhoa)
-
-            // Kiểm tra trạng thái phản hồi và độ toàn vẹn của danh sách
             if (phanHoi.isSuccessful && !phanHoi.body().isNullOrEmpty()) {
                 val duLieuRemote = phanHoi.body()!![0]
-
                 // Trích xuất loại từ và ý nghĩa từ cấu trúc cây JSON
                 val loaiTu = duLieuRemote.danhSachNghia.firstOrNull()?.loaiTu ?: ""
                 val yNghia = duLieuRemote.danhSachNghia.firstOrNull()?.danhSachDinhNghia?.firstOrNull()?.dinhNghia ?: ""
-
-                // Ánh xạ thành thực thể TuVung và trả về kết quả thành công
                 val tuVungMoi = TuVung(
                     tuKhoa = duLieuRemote.tuKhoa,
                     phienAm = duLieuRemote.phienAm ?: "",
@@ -66,22 +54,42 @@ class KhoDuLieuTuVung(
                 )
                 Result.success(tuVungMoi)
             } else {
-                // Trả về Exception khi máy chủ báo lỗi hoặc không tìm thấy từ
                 Result.failure(Exception("Không tìm thấy thông tin từ vựng trên từ điển trực tuyến."))
             }
         } catch (e: Exception) {
-            // Trả về Exception nếu mất kết nối Internet hoặc lỗi định dạng dữ liệu
             Result.failure(e)
         }
     }
 
-    // Trả về luồng dữ liệu đếm số lượng tổng từ vựng hiện có
+    // --- Các hàm phục vụ Màn hình Thống kê ---
+
+    // Trả về luồng dữ liệu tổng số từ vựng
     fun demTongSoTuVung(): Flow<Int> = tuVungDao.demTongSoTuVung()
 
-    // Trả về luồng dữ liệu đếm số lượng từ vựng đã được học thuộc
+    // Trả về luồng dữ liệu số từ đã thuộc
     fun demSoTuDaThuoc(): Flow<Int> = tuVungDao.demSoTuDaThuoc()
 
-    // Lấy luồng dữ liệu thống kê lịch sử ôn tập dưới dạng Flow
+    // Trả về luồng dữ liệu số từ chưa thuộc
+    fun demSoTuChuaThuoc(): Flow<Int> = tuVungDao.demSoTuChuaThuoc()
+
+    // Trả về luồng dữ liệu giá trị trung bình cấp độ SRS
+    fun tinhTrungBinhCapDoSrs(): Flow<Double?> = tuVungDao.tinhTrungBinhCapDoSrs()
+
+    // Trả về luồng dữ liệu giá trị cấp độ SRS cao nhất
+    fun layCaoNhatCapDoSrs(): Flow<Int?> = tuVungDao.layCaoNhatCapDoSrs()
+
+    // Trả về luồng dữ liệu giá trị cấp độ SRS thấp nhất
+    fun layThapNhatCapDoSrs(): Flow<Int?> = tuVungDao.layThapNhatCapDoSrs()
+
+    // Trả về luồng dữ liệu số từ vựng cần ôn tập trong ngày hôm nay
+    fun demTuVungOnTapHomNay(cuoiNgayHomNay: Long): Flow<Int> =
+        tuVungDao.demTuVungOnTapHomNay(cuoiNgayHomNay)
+
+    // Trả về luồng dữ liệu số lượt ôn tập đã hoàn thành trong ngày hôm nay
+    fun demSoLuotOnTapHomNay(batDauNgay: Long, cuoiNgay: Long): Flow<Int> =
+        lichSuOnTapDao.demSoLuotOnTapTrongNgay(batDauNgay, cuoiNgay)
+
+    // Lấy luồng dữ liệu toàn bộ lịch sử ôn tập
     fun layToanBoLichSu(): Flow<List<LichSuOnTap>> = lichSuOnTapDao.layToanBoLichSu()
 
     // Ghi nhận một phiên ôn tập mới vào Room Database

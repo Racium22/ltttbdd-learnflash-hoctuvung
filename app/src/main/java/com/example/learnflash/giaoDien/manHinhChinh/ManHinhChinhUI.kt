@@ -11,7 +11,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -29,10 +32,12 @@ import com.example.learnflash.duLieu.local.thucThe.TuVung
 import com.example.learnflash.giaoDien.thanhPhanChung.HopThoaiCanhBaoLoi
 
 // Thành phần giao diện tổng quan của màn hình chính
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ManHinhChinhUI(
     viewModel: ManHinhChinhViewModel,
-    chuyenHuongChiTiet: (Int) -> Unit
+    chuyenHuongChiTiet: (Int) -> Unit,
+    chuyenHuongCaiDat: () -> Unit
 ) {
     // Thu thập State an toàn từ luồng dữ liệu của ViewModel
     val danhSachTu by viewModel.danhSachTuVung.collectAsState()
@@ -41,6 +46,17 @@ fun ManHinhChinhUI(
 
     // Khung giao diện Scaffold chứa nút thêm nổi (FAB) và danh sách
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("LearnFlash") },
+                actions = {
+                    // Nút điều hướng sang màn hình Cài đặt
+                    IconButton(onClick = chuyenHuongCaiDat) {
+                        Icon(Icons.Default.Settings, contentDescription = "Cài đặt")
+                    }
+                }
+            )
+        },
         floatingActionButton = {
             // Điều hướng sang màn hình Chi Tiết với ID = 0 (Đồng nghĩa với Thêm mới)
             FloatingActionButton(onClick = { chuyenHuongChiTiet(0) }) {
