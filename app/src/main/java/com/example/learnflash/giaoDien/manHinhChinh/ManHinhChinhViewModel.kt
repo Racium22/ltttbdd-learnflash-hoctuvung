@@ -1,5 +1,6 @@
 package com.example.learnflash.giaoDien.manHinhChinh
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.learnflash.duLieu.khoDuLieu.KhoDuLieuTuVung
@@ -13,6 +14,17 @@ import kotlinx.coroutines.launch
 
 // Lớp ViewModel xử lý luồng dữ liệu một chiều cho Màn Hình Chính
 class ManHinhChinhViewModel(private val khoDuLieu: KhoDuLieuTuVung) : ViewModel() {
+
+    private val LOG_TAG = "ManHinhChinhVM_Lifecycle"
+
+    init {
+        Log.d(LOG_TAG, "ViewModel được khởi tạo (Created)")
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        Log.d(LOG_TAG, "ViewModel bị hủy (Cleared)")
+    }
 
     // Luồng dữ liệu StateFlow tự động thu thập và cập nhật danh sách từ vựng từ Repository
     val danhSachTuVung: StateFlow<List<TuVung>> = khoDuLieu.layToanBoTuVung()

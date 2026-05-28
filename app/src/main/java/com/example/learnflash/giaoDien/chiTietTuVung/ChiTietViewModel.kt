@@ -1,5 +1,6 @@
 package com.example.learnflash.giaoDien.chiTietTuVung
 
+import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -13,6 +14,8 @@ class ChiTietViewModel(
     private val khoDuLieu: KhoDuLieuTuVung,
     private val idTuVung: Int
 ) : ViewModel() {
+
+    private val LOG_TAG = "ChiTietViewModel_Lifecycle"
 
     // Trạng thái (State) quản lý chuỗi nhập liệu từ khóa
     private val _tuKhoa = mutableStateOf("")
@@ -42,10 +45,16 @@ class ChiTietViewModel(
     private var tuVungGoc: TuVung? = null
 
     init {
+        Log.d(LOG_TAG, "ViewModel được khởi tạo (Created) với id: $idTuVung")
         // Tự động tải dữ liệu từ vựng cũ lên form khi đang ở chế độ Sửa (id > 0)
         if (idTuVung > 0) {
             taiDuLieuTuVung()
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        Log.d(LOG_TAG, "ViewModel bị hủy (Cleared) - Giải phóng tài nguyên")
     }
 
     // Thực thi truy vấn Room Database để lấy dữ liệu từ vựng theo ID và điền vào State
@@ -112,16 +121,28 @@ class ChiTietViewModel(
 
     // Thực thi xác thực đầu vào và tiến hành lưu dữ liệu qua Repository
     fun luuTuVung(hoanThanh: () -> Unit) {
-        // Kiểm tra các trường bắt buộc không được để trống
+        // --- NHIỆM VỤ TEST: Kiểm tra tính hợp lệ (Validation) ---
         if (_tuKhoa.value.isBlank()) {
             _loiNhapLieu.value = "Từ khóa không được để trống"
+            Log.w(LOG_TAG, "Lỗi validation: Từ khóa trống")
             return
         }
+        
+        if (_tuKhoa.value.length > 50) {
+            _loiNhapLieu.value = "Từ khóa không được quá 50 ký tự"
+            Log.w(LOG_TAG, "Lỗi validation: Từ khóa quá dài")
+            return
+        }
+
         if (_nghiaTiengViet.value.isBlank()) {
             _loiNhapLieu.value = "Ý nghĩa không được để trống"
+            Log.w(LOG_TAG, "Lỗi validation: Ý nghĩa trống")
             return
         }
+        // --------------------------------------------------------
+
         viewModelScope.launch {
+            Log.d(LOG_TAG, "Bắt đầu lưu từ vựng: ${_tuKhoa.value}")
             // Giữ nguyên các trường SRS từ đối tượng gốc khi cập nhật, tránh reset tiến độ học
             val tuVungLuu = TuVung(
                 id = idTuVung,
