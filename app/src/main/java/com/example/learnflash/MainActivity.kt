@@ -9,6 +9,8 @@ import com.example.learnflash.duLieu.khoDuLieu.KhoDuLieuTuVung
 import com.example.learnflash.duLieu.local.database.AppDatabase
 import com.example.learnflash.duLieu.local.dataStore.CaiDatDataStore
 import com.example.learnflash.duLieu.remote.api.TuVungApi
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import com.example.learnflash.tieuChuanGiaoDien.GiaoDienLearnFlash
 
 // Lớp Activity chính - Nơi khởi chạy và quản lý vòng đời ứng dụng hệ thống
@@ -38,7 +40,11 @@ class MainActivity : ComponentActivity() {
 
         // Cài đặt nội dung giao diện Jetpack Compose lên màn hình
         setContent {
-            GiaoDienLearnFlash {
+            // Thu thập StateFlow trạng thái Dark Mode từ DataStore — tự động Recompose khi thay đổi
+            val giaoDienToi by caiDatDataStore.giaoDienToiFlow.collectAsState(initial = false)
+
+            // Truyền trạng thái Dark Mode thực tế từ DataStore vào Theme thay vì đọc hệ thống
+            GiaoDienLearnFlash(toanGiaoDienToi = giaoDienToi) {
                 DieuHuongApp(
                     khoDuLieu = khoDuLieu,
                     caiDatDataStore = caiDatDataStore
