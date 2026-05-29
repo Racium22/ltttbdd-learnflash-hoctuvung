@@ -30,7 +30,7 @@ class ChiTietViewModel(
     private val _loaiTu = mutableStateOf("")
     val loaiTu: State<String> = _loaiTu
 
-    // Trạng thái kiểm soát việc hiển thị Loading khi gọi mạng (API) hoặc khi tải dữ liệu
+    // Trạng thái kiểm soát việc hiển thị Loading khi gọi mạng hoặc tải dữ liệu
     private val _dangTai = mutableStateOf(false)
     val dangTai: State<Boolean> = _dangTai
 
@@ -88,21 +88,21 @@ class ChiTietViewModel(
         _loaiTu.value = giaTriMoi
     }
 
-    // Thực thi tác vụ gọi Repository tra cứu dữ liệu ý nghĩa qua kết nối Internet
-    fun traCuuApi() {
+    // Thực thi tác vụ gọi 2 API song song: dịch nghĩa tiếng Việt + lấy phiên âm/loại từ
+    fun traCuuVaDich() {
         if (_tuKhoa.value.isBlank()) {
             _loiNhapLieu.value = "Vui lòng nhập từ khóa để tra cứu"
             return
         }
         _dangTai.value = true
         viewModelScope.launch {
-            val ketQua = khoDuLieu.traCuuTuVungTrucTuyen(_tuKhoa.value)
+            val ketQua = khoDuLieu.traCuuVaDich(_tuKhoa.value.trim())
             if (ketQua.isSuccess) {
-                val tuVungApi = ketQua.getOrNull()
-                // Tự động điền phiên âm và loại từ từ API vào State tương ứng
-                _nghiaTiengViet.value = tuVungApi?.nghiaTiengViet ?: ""
-                _phienAm.value = tuVungApi?.phienAm ?: ""
-                _loaiTu.value = tuVungApi?.loaiTu ?: ""
+                val tuVungTraVe = ketQua.getOrNull()
+                // Tự động điền kết quả dịch vào các trường State tương ứng
+                _nghiaTiengViet.value = tuVungTraVe?.nghiaTiengViet ?: ""
+                _phienAm.value = tuVungTraVe?.phienAm ?: ""
+                _loaiTu.value = tuVungTraVe?.loaiTu ?: ""
             } else {
                 _loiNhapLieu.value = ketQua.exceptionOrNull()?.message ?: "Lỗi kết nối mạng"
             }

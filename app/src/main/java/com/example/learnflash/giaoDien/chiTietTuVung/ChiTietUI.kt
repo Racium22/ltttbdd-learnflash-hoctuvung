@@ -88,11 +88,11 @@ fun ChiTietUI(
 
             // Nút kích hoạt tác vụ tra cứu dữ liệu từ Internet (Gọi API)
             Button(
-                onClick = { viewModel.traCuuApi() },
+                onClick = { viewModel.traCuuVaDich() },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !dangTai
             ) {
-                Text("Tra cứu ý nghĩa trực tuyến (API)")
+                Text("Tra cứu & Dịch sang Tiếng Việt")
             }
             Spacer(modifier = Modifier.height(8.dp))
 

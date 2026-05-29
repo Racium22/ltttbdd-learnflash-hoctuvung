@@ -4,14 +4,19 @@ import com.example.learnflash.duLieu.local.dao.LichSuOnTapDao
 import com.example.learnflash.duLieu.local.dao.TuVungDao
 import com.example.learnflash.duLieu.local.thucThe.LichSuOnTap
 import com.example.learnflash.duLieu.local.thucThe.TuVung
+import com.example.learnflash.duLieu.remote.api.DichThuatApi
 import com.example.learnflash.duLieu.remote.api.TuVungApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 
 // Lớp Repository xử lý nghiệp vụ điều phối dữ liệu giữa Local Database và Remote API
 class KhoDuLieuTuVung(
     private val tuVungDao: TuVungDao,
     private val lichSuOnTapDao: LichSuOnTapDao,
-    private val tuVungApi: TuVungApi
+    private val tuVungApi: TuVungApi,
+    // Thêm phụ thuộc DichThuatApi phục vụ tác vụ dịch nghĩa sang tiếng Việt
+    private val dichThuatApi: DichThuatApi
 ) {
 
     // Lấy toàn bộ từ vựng dưới dạng luồng dữ liệu (Flow) để UI phản ứng với thay đổi
@@ -36,28 +41,53 @@ class KhoDuLieuTuVung(
     // Thực thi thao tác xóa từ vựng khỏi Room Database
     suspend fun xoaTuVung(tuVung: TuVung) = tuVungDao.xoaTuVung(tuVung)
 
-    // Thực thi thao tác tra cứu ý nghĩa trực tuyến qua Coroutines
-    suspend fun traCuuTuVungTrucTuyen(tuKhoa: String): Result<TuVung> {
+    // Thực thi tra cứu phiên âm + loại từ từ Free Dictionary API và dịch nghĩa từ MyMemory API song song
+    suspend fun traCuuVaDich(tuKhoa: String): Result<TuVung> {
         return try {
-            // Gọi HTTP GET để nhận phản hồi từ API
-            val phanHoi = tuVungApi.traCuuTuVung(tuKhoa)
-            if (phanHoi.isSuccessful && !phanHoi.body().isNullOrEmpty()) {
-                val duLieuRemote = phanHoi.body()!![0]
-                // Trích xuất loại từ và ý nghĩa từ cấu trúc cây JSON
-                val loaiTu = duLieuRemote.danhSachNghia.firstOrNull()?.loaiTu ?: ""
-                val yNghia = duLieuRemote.danhSachNghia.firstOrNull()?.danhSachDinhNghia?.firstOrNull()?.dinhNghia ?: ""
-                val tuVungMoi = TuVung(
-                    tuKhoa = duLieuRemote.tuKhoa,
-                    phienAm = duLieuRemote.phienAm ?: "",
-                    loaiTu = loaiTu,
-                    nghiaTiengViet = yNghia
-                )
-                Result.success(tuVungMoi)
-            } else {
-                Result.failure(Exception("Không tìm thấy thông tin từ vựng trên từ điển trực tuyến."))
+            // Chạy đồng thời 2 HTTP Request bằng coroutineScope + async để giảm thời gian chờ
+            coroutineScope {
+                val congViecDichThuat = async {
+                    dichThuatApi.dichVanBan(vanBanNguon = tuKhoa)
+                }
+                val congViecPhienAm = async {
+                    tuVungApi.traCuuTuVung(tuKhoa)
+                }
+
+                // Thu thập kết quả từ 2 tác vụ bất đồng bộ
+                val phanHoiDich = congViecDichThuat.await()
+                val phanHoiPhienAm = congViecPhienAm.await()
+
+                // Trích xuất nghĩa tiếng Việt từ phản hồi MyMemory API
+                val nghiaTiengViet = if (phanHoiDich.isSuccessful &&
+                    phanHoiDich.body()?.maKetQua == 200) {
+                    phanHoiDich.body()?.duLieuKetQua?.vanBanDaDich ?: ""
+                } else ""
+
+                // Trích xuất phiên âm và loại từ từ phản hồi Free Dictionary API
+                val duLieuPhienAm = if (phanHoiPhienAm.isSuccessful &&
+                    !phanHoiPhienAm.body().isNullOrEmpty()) {
+                    phanHoiPhienAm.body()!![0]
+                } else null
+
+                val phienAm = duLieuPhienAm?.phienAm ?: ""
+                val loaiTu = duLieuPhienAm?.danhSachNghia?.firstOrNull()?.loaiTu ?: ""
+
+                // Xác thực kết quả — cần có ít nhất nghĩa tiếng Việt mới trả về thành công
+                if (nghiaTiengViet.isNotEmpty()) {
+                    Result.success(
+                        TuVung(
+                            tuKhoa = tuKhoa,
+                            nghiaTiengViet = nghiaTiengViet,
+                            phienAm = phienAm,
+                            loaiTu = loaiTu
+                        )
+                    )
+                } else {
+                    Result.failure(Exception("Không tìm được bản dịch tiếng Việt cho từ \"$tuKhoa\""))
+                }
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception("Lỗi kết nối mạng: ${e.message}"))
         }
     }
 

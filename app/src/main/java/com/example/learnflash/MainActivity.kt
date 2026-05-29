@@ -8,6 +8,7 @@ import com.example.learnflash.dieuHuong.DieuHuongApp
 import com.example.learnflash.duLieu.khoDuLieu.KhoDuLieuTuVung
 import com.example.learnflash.duLieu.local.database.AppDatabase
 import com.example.learnflash.duLieu.local.dataStore.CaiDatDataStore
+import com.example.learnflash.duLieu.remote.api.DichThuatApi
 import com.example.learnflash.duLieu.remote.api.TuVungApi
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -29,11 +30,14 @@ class MainActivity : ComponentActivity() {
         val tuVungDao = database.tuVungDao()
         val lichSuDao = database.lichSuOnTapDao()
 
-        // Khởi tạo công cụ Retrofit thực thi HTTP Request
+        // Khởi tạo công cụ Retrofit thực thi HTTP Request tra cứu phiên âm
         val api = TuVungApi.khoiTaoApi()
 
+        // Khởi tạo công cụ Retrofit thực thi HTTP Request dịch nghĩa tiếng Việt
+        val dichThuatApi = DichThuatApi.khoiTaoApi()
+
         // Bơm các phụ thuộc (Dependency Injection thủ công) vào Kho dữ liệu trung gian
-        val khoDuLieu = KhoDuLieuTuVung(tuVungDao, lichSuDao, api)
+        val khoDuLieu = KhoDuLieuTuVung(tuVungDao, lichSuDao, api, dichThuatApi)
 
         // Khởi tạo DataStore quản lý cài đặt người dùng (Dark Mode, Mục tiêu học ngày)
         val caiDatDataStore = CaiDatDataStore(this)
