@@ -4,13 +4,19 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.learnflash.duLieu.khoDuLieu.KhoDuLieuDanhMuc
 import com.example.learnflash.duLieu.khoDuLieu.KhoDuLieuTuVung
+import com.example.learnflash.duLieu.local.thucThe.DanhMuc
 import com.example.learnflash.duLieu.local.thucThe.TuVung
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 // Lớp ViewModel quản lý luồng State và nghiệp vụ cho màn hình Thêm/Sửa
 class ChiTietViewModel(
     private val khoDuLieu: KhoDuLieuTuVung,
+    private val khoDuLieuDanhMuc: KhoDuLieuDanhMuc,
     private val idTuVung: Int
 ) : ViewModel() {
 
@@ -30,6 +36,10 @@ class ChiTietViewModel(
     private val _loaiTu = mutableStateOf("")
     val loaiTu: State<String> = _loaiTu
 
+    // Trạng thái (State) quản lý ID danh mục đang được chọn cho từ vựng
+    private val _danhMucDangChon = mutableStateOf("mac_dinh")
+    val danhMucDangChon: State<String> = _danhMucDangChon
+
     // Trạng thái kiểm soát việc hiển thị Loading khi gọi mạng hoặc tải dữ liệu
     private val _dangTai = mutableStateOf(false)
     val dangTai: State<Boolean> = _dangTai
@@ -37,6 +47,14 @@ class ChiTietViewModel(
     // Trạng thái lưu trữ chuỗi thông báo lỗi xác thực (Validation)
     private val _loiNhapLieu = mutableStateOf("")
     val loiNhapLieu: State<String> = _loiNhapLieu
+
+    // Luồng StateFlow danh sách danh mục để hiển thị DropdownMenu chọn danh mục
+    val danhSachDanhMuc: StateFlow<List<DanhMuc>> = khoDuLieuDanhMuc.layToanBoDanhMuc()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
 
     // Biến lưu tham chiếu đối tượng gốc để giữ nguyên các trường SRS khi cập nhật
     private var tuVungGoc: TuVung? = null
@@ -61,6 +79,7 @@ class ChiTietViewModel(
                 _nghiaTiengViet.value = tuVung.nghiaTiengViet
                 _phienAm.value = tuVung.phienAm
                 _loaiTu.value = tuVung.loaiTu
+                _danhMucDangChon.value = tuVung.danhMucId
             }
             _dangTai.value = false
         }
@@ -86,6 +105,11 @@ class ChiTietViewModel(
     // Hàm cập nhật State khi người dùng nhập loại từ
     fun capNhatLoaiTu(giaTriMoi: String) {
         _loaiTu.value = giaTriMoi
+    }
+
+    // Hàm cập nhật State khi người dùng chọn danh mục từ DropdownMenu
+    fun capNhatDanhMuc(danhMucId: String) {
+        _danhMucDangChon.value = danhMucId
     }
 
     // Thực thi tác vụ gọi 2 API song song: dịch nghĩa tiếng Việt + lấy phiên âm/loại từ
@@ -129,6 +153,7 @@ class ChiTietViewModel(
                 nghiaTiengViet = _nghiaTiengViet.value.trim(),
                 phienAm = _phienAm.value.trim(),
                 loaiTu = _loaiTu.value.trim(),
+                danhMucId = _danhMucDangChon.value,
                 capDoSrs = tuVungGoc?.capDoSrs ?: 0,
                 ngayOnTapTiepTheo = tuVungGoc?.ngayOnTapTiepTheo ?: System.currentTimeMillis(),
                 daThuoc = tuVungGoc?.daThuoc ?: false

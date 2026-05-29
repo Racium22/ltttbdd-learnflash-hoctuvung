@@ -4,14 +4,15 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import com.example.learnflash.dieuHuong.DieuHuongApp
+import com.example.learnflash.duLieu.khoDuLieu.KhoDuLieuDanhMuc
 import com.example.learnflash.duLieu.khoDuLieu.KhoDuLieuTuVung
 import com.example.learnflash.duLieu.local.database.AppDatabase
 import com.example.learnflash.duLieu.local.dataStore.CaiDatDataStore
 import com.example.learnflash.duLieu.remote.api.DichThuatApi
 import com.example.learnflash.duLieu.remote.api.TuVungApi
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import com.example.learnflash.tieuChuanGiaoDien.GiaoDienLearnFlash
 
 // Lớp Activity chính - Nơi khởi chạy và quản lý vòng đời ứng dụng hệ thống
@@ -29,6 +30,7 @@ class MainActivity : ComponentActivity() {
         val database = AppDatabase.layDatabase(this)
         val tuVungDao = database.tuVungDao()
         val lichSuDao = database.lichSuOnTapDao()
+        val danhMucDao = database.danhMucDao()
 
         // Khởi tạo công cụ Retrofit thực thi HTTP Request tra cứu phiên âm
         val api = TuVungApi.khoiTaoApi()
@@ -36,8 +38,11 @@ class MainActivity : ComponentActivity() {
         // Khởi tạo công cụ Retrofit thực thi HTTP Request dịch nghĩa tiếng Việt
         val dichThuatApi = DichThuatApi.khoiTaoApi()
 
-        // Bơm các phụ thuộc (Dependency Injection thủ công) vào Kho dữ liệu trung gian
+        // Bơm các phụ thuộc vào Kho dữ liệu từ vựng
         val khoDuLieu = KhoDuLieuTuVung(tuVungDao, lichSuDao, api, dichThuatApi)
+
+        // Bơm phụ thuộc vào Kho dữ liệu danh mục
+        val khoDuLieuDanhMuc = KhoDuLieuDanhMuc(danhMucDao)
 
         // Khởi tạo DataStore quản lý cài đặt người dùng (Dark Mode, Mục tiêu học ngày)
         val caiDatDataStore = CaiDatDataStore(this)
@@ -47,29 +52,30 @@ class MainActivity : ComponentActivity() {
             // Thu thập StateFlow trạng thái Dark Mode từ DataStore — tự động Recompose khi thay đổi
             val giaoDienToi by caiDatDataStore.giaoDienToiFlow.collectAsState(initial = false)
 
-            // Truyền trạng thái Dark Mode thực tế từ DataStore vào Theme thay vì đọc hệ thống
+            // Truyền trạng thái Dark Mode thực tế từ DataStore vào Theme
             GiaoDienLearnFlash(toanGiaoDienToi = giaoDienToi) {
                 DieuHuongApp(
                     khoDuLieu = khoDuLieu,
+                    khoDuLieuDanhMuc = khoDuLieuDanhMuc,
                     caiDatDataStore = caiDatDataStore
                 )
             }
         }
     }
 
-    // Callback vòng đời được gọi khi Activity bắt đầu hiển thị (Visible) nhưng chưa nhận tiêu điểm
+    // Callback vòng đời được gọi khi Activity bắt đầu hiển thị nhưng chưa nhận tiêu điểm
     override fun onStart() {
         super.onStart()
         Log.d(LOG_TAG, "Trạng thái: onStart - Giao diện bắt đầu hiển thị với người dùng")
     }
 
-    // Callback vòng đời được gọi khi Activity đã sẵn sàng nhận các sự kiện tương tác chạm (Focus)
+    // Callback vòng đời được gọi khi Activity đã sẵn sàng nhận các sự kiện tương tác chạm
     override fun onResume() {
         super.onResume()
         Log.d(LOG_TAG, "Trạng thái: onResume - Sẵn sàng bắt sự kiện tương tác chạm")
     }
 
-    // Callback vòng đời được gọi khi Activity bị che khuất một phần hoặc mất tiêu điểm tương tác
+    // Callback vòng đời được gọi khi Activity bị che khuất một phần hoặc mất tiêu điểm
     override fun onPause() {
         super.onPause()
         Log.d(LOG_TAG, "Trạng thái: onPause - Tạm dừng các tác vụ chiếm tài nguyên UI")

@@ -9,9 +9,9 @@ data class TuVung(
     // Khóa chính tự động tăng
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    // Từ vựng nguyên bản
+    // Từ vựng nguyên bản tiếng Anh
     val tuKhoa: String,
-    // Nghĩa của từ
+    // Nghĩa của từ bằng tiếng Việt
     val nghiaTiengViet: String,
     // Phiên âm từ vựng
     val phienAm: String = "",
@@ -19,8 +19,10 @@ data class TuVung(
     val loaiTu: String = "",
     // Cấp độ ghi nhớ phục vụ thuật toán lặp ngắt quãng (Spaced Repetition)
     val capDoSrs: Int = 0,
-    // Thời điểm cần ôn tập lại (tính bằng milliseconds)
+    // Thời điểm cần ôn tập lại tính bằng milliseconds
     val ngayOnTapTiepTheo: Long = System.currentTimeMillis(),
     // Đánh dấu từ vựng đã được học thuộc hoàn toàn hay chưa
-    val daThuoc: Boolean = false
+    val daThuoc: Boolean = false,
+    // Khóa ngoại tham chiếu đến danh mục chủ đề — mặc định là danh mục chung
+    val danhMucId: String = "mac_dinh"
 )

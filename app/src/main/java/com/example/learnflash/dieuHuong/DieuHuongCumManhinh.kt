@@ -21,12 +21,15 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.learnflash.duLieu.khoDuLieu.KhoDuLieuDanhMuc
 import com.example.learnflash.duLieu.khoDuLieu.KhoDuLieuTuVung
 import com.example.learnflash.duLieu.local.dataStore.CaiDatDataStore
 import com.example.learnflash.giaoDien.caiDat.CaiDatUI
 import com.example.learnflash.giaoDien.caiDat.CaiDatViewModel
 import com.example.learnflash.giaoDien.chiTietTuVung.ChiTietUI
 import com.example.learnflash.giaoDien.chiTietTuVung.ChiTietViewModel
+import com.example.learnflash.giaoDien.danhMuc.DanhMucUI
+import com.example.learnflash.giaoDien.danhMuc.DanhMucViewModel
 import com.example.learnflash.giaoDien.gioiThieu.GioiThieuUI
 import com.example.learnflash.giaoDien.gioiThieu.GioiThieuViewModel
 import com.example.learnflash.giaoDien.manHinhChinh.ManHinhChinhUI
@@ -40,12 +43,13 @@ import com.example.learnflash.giaoDien.thongKe.ThongKeViewModel
 @Composable
 fun DieuHuongApp(
     khoDuLieu: KhoDuLieuTuVung,
+    khoDuLieuDanhMuc: KhoDuLieuDanhMuc,
     caiDatDataStore: CaiDatDataStore
 ) {
     // Khởi tạo bộ điều khiển trạng thái tuyến đường (NavController)
     val navController = rememberNavController()
 
-    // Thu thập trạng thái BackStack để xác định Item nào trên Bottom Navigation Bar đang được chọn
+    // Thu thập trạng thái BackStack để xác định Item nào trên Bottom Navigation Bar đang chọn
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val tuyenHienTai = navBackStackEntry?.destination?.route
 
@@ -97,11 +101,14 @@ fun DieuHuongApp(
         ) {
             // Khai báo tuyến đường Màn Hình Chính
             composable("manHinhChinh") {
-                val viewModel: ManHinhChinhViewModel = viewModel { ManHinhChinhViewModel(khoDuLieu) }
+                val viewModel: ManHinhChinhViewModel = viewModel {
+                    ManHinhChinhViewModel(khoDuLieu, khoDuLieuDanhMuc)
+                }
                 ManHinhChinhUI(
                     viewModel = viewModel,
                     chuyenHuongChiTiet = { id -> navController.navigate("chiTiet/$id") },
-                    chuyenHuongCaiDat = { navController.navigate("caiDat") }
+                    chuyenHuongCaiDat = { navController.navigate("caiDat") },
+                    chuyenHuongDanhMuc = { navController.navigate("danhMuc") }
                 )
             }
 
@@ -111,7 +118,9 @@ fun DieuHuongApp(
                 arguments = listOf(navArgument("id") { type = NavType.IntType })
             ) { backStackEntry ->
                 val idTuVung = backStackEntry.arguments?.getInt("id") ?: 0
-                val viewModel: ChiTietViewModel = viewModel { ChiTietViewModel(khoDuLieu, idTuVung) }
+                val viewModel: ChiTietViewModel = viewModel {
+                    ChiTietViewModel(khoDuLieu, khoDuLieuDanhMuc, idTuVung)
+                }
                 ChiTietUI(
                     viewModel = viewModel,
                     quayLai = { navController.popBackStack() }
@@ -143,6 +152,15 @@ fun DieuHuongApp(
             composable("caiDat") {
                 val viewModel: CaiDatViewModel = viewModel { CaiDatViewModel(caiDatDataStore) }
                 CaiDatUI(
+                    viewModel = viewModel,
+                    quayLai = { navController.popBackStack() }
+                )
+            }
+
+            // Khai báo tuyến đường Màn Hình Danh Mục (không có Bottom Bar)
+            composable("danhMuc") {
+                val viewModel: DanhMucViewModel = viewModel { DanhMucViewModel(khoDuLieuDanhMuc) }
+                DanhMucUI(
                     viewModel = viewModel,
                     quayLai = { navController.popBackStack() }
                 )
