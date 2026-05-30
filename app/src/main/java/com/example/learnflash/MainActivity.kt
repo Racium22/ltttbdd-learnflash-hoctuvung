@@ -4,9 +4,12 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import com.example.learnflash.dieuHuong.DieuHuongApp
+import com.example.learnflash.duLieu.remote.firebase.FirebaseNguonDuLieu
 import com.example.learnflash.duLieu.khoDuLieu.KhoDuLieuDanhMuc
 import com.example.learnflash.duLieu.khoDuLieu.KhoDuLieuTuVung
 import com.example.learnflash.duLieu.local.database.AppDatabase
@@ -38,14 +41,22 @@ class MainActivity : ComponentActivity() {
         // Khởi tạo công cụ Retrofit thực thi HTTP Request dịch nghĩa tiếng Việt
         val dichThuatApi = DichThuatApi.khoiTaoApi()
 
+        // Khởi tạo lớp truy xuất Firestore — tải dữ liệu mặc định và đồng bộ SRS
+        val firebaseNguonDuLieu = FirebaseNguonDuLieu(tuVungDao, danhMucDao)
+
         // Bơm các phụ thuộc vào Kho dữ liệu từ vựng
-        val khoDuLieu = KhoDuLieuTuVung(tuVungDao, lichSuDao, api, dichThuatApi)
+        val khoDuLieu = KhoDuLieuTuVung(tuVungDao, lichSuDao, api, dichThuatApi, firebaseNguonDuLieu)
 
         // Bơm phụ thuộc vào Kho dữ liệu danh mục
         val khoDuLieuDanhMuc = KhoDuLieuDanhMuc(danhMucDao)
 
         // Khởi tạo DataStore quản lý cài đặt người dùng (Dark Mode, Mục tiêu học ngày)
         val caiDatDataStore = CaiDatDataStore(this)
+
+        // Khởi động bất đồng bộ tác vụ kiểm tra và tải dữ liệu mặc định từ Firestore
+        lifecycleScope.launch {
+            khoDuLieu.khoiTaoDuLieuMacDinh()
+        }
 
         // Cài đặt nội dung giao diện Jetpack Compose lên màn hình
         setContent {

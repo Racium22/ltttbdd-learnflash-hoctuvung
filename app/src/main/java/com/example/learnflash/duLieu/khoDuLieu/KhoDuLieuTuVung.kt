@@ -4,6 +4,7 @@ import com.example.learnflash.duLieu.local.dao.LichSuOnTapDao
 import com.example.learnflash.duLieu.local.dao.TuVungDao
 import com.example.learnflash.duLieu.local.thucThe.LichSuOnTap
 import com.example.learnflash.duLieu.local.thucThe.TuVung
+import com.example.learnflash.duLieu.remote.firebase.FirebaseNguonDuLieu
 import com.example.learnflash.duLieu.remote.api.DichThuatApi
 import com.example.learnflash.duLieu.remote.api.TuVungApi
 import kotlinx.coroutines.async
@@ -15,8 +16,9 @@ class KhoDuLieuTuVung(
     private val tuVungDao: TuVungDao,
     private val lichSuOnTapDao: LichSuOnTapDao,
     private val tuVungApi: TuVungApi,
-    // Thêm phụ thuộc DichThuatApi phục vụ tác vụ dịch nghĩa sang tiếng Việt
-    private val dichThuatApi: DichThuatApi
+    private val dichThuatApi: DichThuatApi,
+    // Thêm phụ thuộc FirebaseNguonDuLieu phục vụ tải dữ liệu mặc định và đồng bộ SRS
+    private val firebaseNguonDuLieu: FirebaseNguonDuLieu
 ) {
 
     // Lấy toàn bộ từ vựng dưới dạng luồng dữ liệu (Flow) để UI phản ứng với thay đổi
@@ -29,13 +31,27 @@ class KhoDuLieuTuVung(
     // Truy vấn một từ vựng theo ID để phục vụ màn hình Sửa
     suspend fun layTuVungTheoId(id: Int): TuVung? = tuVungDao.layTuVungTheoId(id)
 
-    // Thực thi thao tác thêm hoặc cập nhật từ vựng vào Room Database
+    // Thực thi thao tác thêm hoặc cập nhật từ vựng vào Room Database và đồng bộ lên Firestore
     suspend fun luuTuVung(tuVung: TuVung) {
         if (tuVung.id == 0) {
             tuVungDao.themTuVung(tuVung)
+            // Đẩy từ vựng mới do người dùng tạo lên Firestore để lưu đám mây
+            firebaseNguonDuLieu.themTuVungLenFirestore(tuVung)
         } else {
             tuVungDao.capNhatTuVung(tuVung)
         }
+    }
+
+    // Cập nhật tiến độ SRS vào Room và đồng bộ lên Firestore sau mỗi phiên đánh giá
+    suspend fun capNhatTienDoSrs(tuVung: TuVung) {
+        tuVungDao.capNhatTuVung(tuVung)
+        // Đồng bộ bất đồng bộ lên Firestore — lỗi mạng không ảnh hưởng luồng chính
+        firebaseNguonDuLieu.dongBoTienDoSrs(tuVung)
+    }
+
+    // Kích hoạt tác vụ kiểm tra và tải dữ liệu mặc định từ Firestore nếu Room đang trống
+    suspend fun khoiTaoDuLieuMacDinh() {
+        firebaseNguonDuLieu.khoiTaoDuLieuMacDinh()
     }
 
     // Thực thi thao tác xóa từ vựng khỏi Room Database

@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    // Thêm plugin Gradle của dịch vụ Google
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -49,6 +51,13 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+
+    // Thêm bộ quản lý thư viện Firebase BoM
+    implementation(platform("com.google.firebase:firebase-bom:34.14.0"))
+    // Firestore SDK — dùng artifact chính thay vì -ktx đã deprecated từ BOM 33+
+    implementation("com.google.firebase:firebase-firestore")
+    // Coroutines Play Services — cung cấp hàm .await() để gọi Firebase trong Coroutine
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.0")
 
     // Khai báo thư viện mở rộng chứa toàn bộ Icon cho Compose
     implementation("androidx.compose.material:material-icons-extended")

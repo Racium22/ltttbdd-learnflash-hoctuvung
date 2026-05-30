@@ -37,9 +37,13 @@ interface TuVungDao {
     @Delete
     suspend fun xoaTuVung(tuVung: TuVung)
 
-    // Trả về tổng số từ vựng hiện có trong cơ sở dữ liệu
+    // Trả về tổng số từ vựng hiện có dưới dạng Flow để UI theo dõi thay đổi
     @Query("SELECT COUNT(*) FROM tu_vung")
     fun demTongSoTuVung(): Flow<Int>
+
+    // Trả về tổng số từ vựng dạng suspend — dùng một lần để kiểm tra Room trước khi tải Firebase
+    @Query("SELECT COUNT(*) FROM tu_vung")
+    suspend fun demTongSoTuVungMacDinh(): Int
 
     // Trả về số từ vựng đã được đánh dấu là thuộc (daThuoc = 1)
     @Query("SELECT COUNT(*) FROM tu_vung WHERE daThuoc = 1")

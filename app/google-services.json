@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "488052659870",
+    "project_id": "learnflash-e5e2523d",
+    "storage_bucket": "learnflash-e5e2523d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:488052659870:android:e45fea5869ef6da8384d8f",
+        "android_client_info": {
+          "package_name": "com.example.learnflash"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAlscUpQYIVnt9V_ACECxViXP1a1CzK7BM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

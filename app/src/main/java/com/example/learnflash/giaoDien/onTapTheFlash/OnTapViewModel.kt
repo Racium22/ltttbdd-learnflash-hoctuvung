@@ -72,8 +72,8 @@ class OnTapViewModel(private val khoDuLieu: KhoDuLieuTuVung) : ViewModel() {
                 ngayOnTapTiepTheo = ngayTiepTheo,
                 daThuoc = daThuocHoanToan
             )
-            // Ghi nhận thay đổi vào cơ sở dữ liệu
-            khoDuLieu.luuTuVung(tuCapNhat)
+            // Ghi nhận thay đổi vào Room và đồng bộ tiến độ SRS lên Firestore
+            khoDuLieu.capNhatTienDoSrs(tuCapNhat)
 
             // Tăng biến đếm thống kê
             if (nhoDung) soTuDung++ else soTuSai++
