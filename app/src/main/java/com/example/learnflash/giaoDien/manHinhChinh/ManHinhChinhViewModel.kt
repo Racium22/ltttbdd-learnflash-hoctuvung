@@ -5,10 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.example.learnflash.duLieu.khoDuLieu.KhoDuLieuDanhMuc
 import com.example.learnflash.duLieu.khoDuLieu.KhoDuLieuTuVung
 import com.example.learnflash.duLieu.local.thucThe.DanhMuc
-import com.example.learnflash.duLieu.local.thucThe.TuVung
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -19,25 +19,15 @@ class ManHinhChinhViewModel(
     private val khoDuLieuDanhMuc: KhoDuLieuDanhMuc
 ) : ViewModel() {
 
-    // Trạng thái StateFlow lưu ID danh mục đang được lọc — null = hiển thị tất cả
-    private val _danhMucDangChon = MutableStateFlow<String?>(null)
-    val danhMucDangChon: StateFlow<String?> = _danhMucDangChon
+    // Trạng thái StateFlow kiểm soát hiển thị màn hình loading khi khởi tạo dữ liệu Firebase
+    private val _dangKhoiTao = MutableStateFlow(true)
+    val dangKhoiTao: StateFlow<Boolean> = _dangKhoiTao.asStateFlow()
 
-    // Luồng StateFlow toàn bộ từ vựng kết hợp với bộ lọc danh mục hiện tại
-    val danhSachTuVung: StateFlow<List<TuVung>> = combine(
-        khoDuLieu.layToanBoTuVung(),
-        _danhMucDangChon
-    ) { danhSach, danhMucId ->
-        // Lọc danh sách theo danhMucId nếu có chọn — null thì trả toàn bộ
-        if (danhMucId == null) danhSach
-        else danhSach.filter { it.danhMucId == danhMucId }
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
+    // Trạng thái StateFlow lưu thông báo lỗi nếu tải Firebase thất bại
+    private val _loiKhoiTao = MutableStateFlow("")
+    val loiKhoiTao: StateFlow<String> = _loiKhoiTao.asStateFlow()
 
-    // Luồng StateFlow danh sách danh mục để hiển thị bộ lọc FilterChip
+    // Luồng StateFlow danh sách danh mục để hiển thị lưới trang chủ
     val danhSachDanhMuc: StateFlow<List<DanhMuc>> = khoDuLieuDanhMuc.layToanBoDanhMuc()
         .stateIn(
             scope = viewModelScope,
@@ -45,7 +35,7 @@ class ManHinhChinhViewModel(
             initialValue = emptyList()
         )
 
-    // Luồng dữ liệu StateFlow tổng hợp hai nguồn thống kê (Tổng số từ và Số từ đã thuộc)
+    // Luồng StateFlow tổng hợp thống kê tổng số từ và số từ đã thuộc
     val thongKeTuVung: StateFlow<Pair<Int, Int>> = combine(
         khoDuLieu.demTongSoTuVung(),
         khoDuLieu.demSoTuDaThuoc()
@@ -57,26 +47,27 @@ class ManHinhChinhViewModel(
         initialValue = Pair(0, 0)
     )
 
-    // Trạng thái (State) quản lý việc đóng/mở hộp thoại xác nhận xóa từ vựng
-    val tuVungCanXoa = MutableStateFlow<TuVung?>(null)
-
-    // Hàm thay đổi danh mục đang lọc — nhận null để hiển thị tất cả
-    fun chonDanhMuc(danhMucId: String?) {
-        _danhMucDangChon.value = danhMucId
+    init {
+        // Kích hoạt tác vụ kiểm tra và tải dữ liệu Firebase ngay khi ViewModel được tạo
+        khoiTaoDuLieu()
     }
 
-    // Thực thi thao tác xóa từ vựng trong Coroutine sau khi người dùng đồng ý
-    fun xacNhanXoaTuVung() {
-        tuVungCanXoa.value?.let { tuVung ->
-            viewModelScope.launch {
-                khoDuLieu.xoaTuVung(tuVung)
-                tuVungCanXoa.value = null
+    // Thực thi tác vụ bất đồng bộ kiểm tra Room và tải Firestore nếu cần
+    private fun khoiTaoDuLieu() {
+        viewModelScope.launch {
+            _dangKhoiTao.value = true
+            val thanhCong = khoDuLieu.khoiTaoDuLieuMacDinh()
+            if (!thanhCong) {
+                // Vẫn cho phép dùng app với dữ liệu Room cũ dù Firebase thất bại
+                _loiKhoiTao.value = "Không thể kết nối Firebase — dùng dữ liệu ngoại tuyến"
             }
+            _dangKhoiTao.value = false
         }
     }
 
-    // Sự kiện người dùng nhấn nút xóa, mở hộp thoại yêu cầu xác nhận
-    fun yeuCauXoaTuVung(tuVung: TuVung) {
-        tuVungCanXoa.value = tuVung
+    // Cho phép người dùng thử tải lại nếu trước đó gặp lỗi
+    fun taiLai() {
+        _loiKhoiTao.value = ""
+        khoiTaoDuLieu()
     }
 }

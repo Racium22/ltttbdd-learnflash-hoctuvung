@@ -53,11 +53,6 @@ class MainActivity : ComponentActivity() {
         // Khởi tạo DataStore quản lý cài đặt người dùng (Dark Mode, Mục tiêu học ngày)
         val caiDatDataStore = CaiDatDataStore(this)
 
-        // Khởi động bất đồng bộ tác vụ kiểm tra và tải dữ liệu mặc định từ Firestore
-        lifecycleScope.launch {
-            khoDuLieu.khoiTaoDuLieuMacDinh()
-        }
-
         // Cài đặt nội dung giao diện Jetpack Compose lên màn hình
         setContent {
             // Thu thập StateFlow trạng thái Dark Mode từ DataStore — tự động Recompose khi thay đổi

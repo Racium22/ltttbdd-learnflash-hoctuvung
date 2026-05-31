@@ -17,7 +17,8 @@ import kotlinx.coroutines.launch
 class ChiTietViewModel(
     private val khoDuLieu: KhoDuLieuTuVung,
     private val khoDuLieuDanhMuc: KhoDuLieuDanhMuc,
-    private val idTuVung: Int
+    private val idTuVung: Int,
+    private val danhMucIdMacDinh: String = "mac_dinh"
 ) : ViewModel() {
 
     // Trạng thái (State) quản lý chuỗi nhập liệu từ khóa
@@ -37,7 +38,7 @@ class ChiTietViewModel(
     val loaiTu: State<String> = _loaiTu
 
     // Trạng thái (State) quản lý ID danh mục đang được chọn cho từ vựng
-    private val _danhMucDangChon = mutableStateOf("mac_dinh")
+    private val _danhMucDangChon = mutableStateOf(danhMucIdMacDinh)
     val danhMucDangChon: State<String> = _danhMucDangChon
 
     // Trạng thái kiểm soát việc hiển thị Loading khi gọi mạng hoặc tải dữ liệu

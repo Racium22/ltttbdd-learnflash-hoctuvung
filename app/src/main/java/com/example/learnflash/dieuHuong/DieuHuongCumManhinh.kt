@@ -30,6 +30,8 @@ import com.example.learnflash.giaoDien.chiTietTuVung.ChiTietUI
 import com.example.learnflash.giaoDien.chiTietTuVung.ChiTietViewModel
 import com.example.learnflash.giaoDien.danhMuc.DanhMucUI
 import com.example.learnflash.giaoDien.danhMuc.DanhMucViewModel
+import com.example.learnflash.giaoDien.danhSachTuVung.DanhSachTuVungUI
+import com.example.learnflash.giaoDien.danhSachTuVung.DanhSachTuVungViewModel
 import com.example.learnflash.giaoDien.gioiThieu.GioiThieuUI
 import com.example.learnflash.giaoDien.gioiThieu.GioiThieuViewModel
 import com.example.learnflash.giaoDien.manHinhChinh.ManHinhChinhUI
@@ -38,6 +40,8 @@ import com.example.learnflash.giaoDien.onTapTheFlash.OnTapUI
 import com.example.learnflash.giaoDien.onTapTheFlash.OnTapViewModel
 import com.example.learnflash.giaoDien.thongKe.ThongKeUI
 import com.example.learnflash.giaoDien.thongKe.ThongKeViewModel
+import java.net.URLDecoder
+import java.net.URLEncoder
 
 // Hàm Composable định nghĩa cấu trúc khung chuyển hướng màn hình toàn bộ ứng dụng
 @Composable
@@ -53,13 +57,13 @@ fun DieuHuongApp(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val tuyenHienTai = navBackStackEntry?.destination?.route
 
-    // Danh sách các tuyến đường hiển thị Bottom Navigation Bar
+    // Danh sách tuyến đường hiển thị Bottom Navigation Bar
     val cacTuyenCoBottomBar = listOf("manHinhChinh", "onTap", "thongKe", "gioiThieu")
 
     Scaffold(
         bottomBar = {
-            // Chỉ hiển thị Bottom Navigation Bar khi đang ở các màn hình chính
-            if (tuyenHienTai in cacTuyenCoBottomBar) {
+            // Chỉ hiển thị Bottom Navigation Bar khi ở các màn hình chính
+            if (cacTuyenCoBottomBar.any { tuyenHienTai == it }) {
                 NavigationBar {
                     // Mục điều hướng Trang chủ
                     NavigationBarItem(
@@ -99,27 +103,76 @@ fun DieuHuongApp(
             startDestination = "manHinhChinh",
             modifier = Modifier.padding(paddingValues)
         ) {
-            // Khai báo tuyến đường Màn Hình Chính
+            // Tuyến đường Màn Hình Chính — lưới danh mục
             composable("manHinhChinh") {
                 val viewModel: ManHinhChinhViewModel = viewModel {
                     ManHinhChinhViewModel(khoDuLieu, khoDuLieuDanhMuc)
                 }
                 ManHinhChinhUI(
                     viewModel = viewModel,
-                    chuyenHuongChiTiet = { id -> navController.navigate("chiTiet/$id") },
+                    chuyenHuongDanhSachTu = { danhMucId, tenDanhMuc ->
+                        val tenEncode = URLEncoder.encode(tenDanhMuc, "UTF-8")
+                        navController.navigate("danhSachTuVung/$danhMucId/$tenEncode")
+                    },
                     chuyenHuongCaiDat = { navController.navigate("caiDat") },
                     chuyenHuongDanhMuc = { navController.navigate("danhMuc") }
                 )
             }
 
-            // Khai báo tuyến đường Màn Hình Chi Tiết truyền tham số động (ID)
+            // Tuyến đường Danh Sách Từ Vựng theo danh mục — nhận danhMucId và tenDanhMuc
             composable(
-                route = "chiTiet/{id}",
-                arguments = listOf(navArgument("id") { type = NavType.IntType })
+                route = "danhSachTuVung/{danhMucId}/{tenDanhMuc}",
+                arguments = listOf(
+                    navArgument("danhMucId") { type = NavType.StringType },
+                    navArgument("tenDanhMuc") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val danhMucId = backStackEntry.arguments?.getString("danhMucId") ?: ""
+                val tenDanhMucEncode = backStackEntry.arguments?.getString("tenDanhMuc") ?: ""
+                val tenDanhMuc = URLDecoder.decode(tenDanhMucEncode, "UTF-8")
+                val viewModel: DanhSachTuVungViewModel = viewModel {
+                    DanhSachTuVungViewModel(khoDuLieu, danhMucId, tenDanhMuc)
+                }
+                DanhSachTuVungUI(
+                    viewModel = viewModel,
+                    chuyenHuongChiTiet = { id, danhMucIdMacDinh ->
+                        navController.navigate("chiTiet/$id/$danhMucIdMacDinh")
+                    },
+                    // Điều hướng sang màn hình ôn tập với danhMucId cụ thể
+                    chuyenHuongOnTap = { danhMucIdOnTap ->
+                        val danhMucEncode = URLEncoder.encode(danhMucIdOnTap, "UTF-8")
+                        navController.navigate("onTapTheoDanhMuc/$danhMucEncode")
+                    },
+                    quayLai = { navController.popBackStack() }
+                )
+            }
+
+            // Tuyến đường Ôn Tập lọc theo danh mục cụ thể
+            composable(
+                route = "onTapTheoDanhMuc/{danhMucId}",
+                arguments = listOf(navArgument("danhMucId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val danhMucIdEncode = backStackEntry.arguments?.getString("danhMucId") ?: ""
+                val danhMucId = URLDecoder.decode(danhMucIdEncode, "UTF-8")
+                val viewModel: OnTapViewModel = viewModel { OnTapViewModel(khoDuLieu, danhMucId) }
+                OnTapUI(
+                    viewModel = viewModel,
+                    quayLai = { navController.popBackStack() }
+                )
+            }
+
+            // Tuyến đường Màn Hình Chi Tiết — nhận id từ vựng và danhMucId mặc định
+            composable(
+                route = "chiTiet/{id}/{danhMucIdMacDinh}",
+                arguments = listOf(
+                    navArgument("id") { type = NavType.IntType },
+                    navArgument("danhMucIdMacDinh") { type = NavType.StringType }
+                )
             ) { backStackEntry ->
                 val idTuVung = backStackEntry.arguments?.getInt("id") ?: 0
+                val danhMucIdMacDinh = backStackEntry.arguments?.getString("danhMucIdMacDinh") ?: "mac_dinh"
                 val viewModel: ChiTietViewModel = viewModel {
-                    ChiTietViewModel(khoDuLieu, khoDuLieuDanhMuc, idTuVung)
+                    ChiTietViewModel(khoDuLieu, khoDuLieuDanhMuc, idTuVung, danhMucIdMacDinh)
                 }
                 ChiTietUI(
                     viewModel = viewModel,
@@ -127,7 +180,7 @@ fun DieuHuongApp(
                 )
             }
 
-            // Khai báo tuyến đường Màn Hình Ôn Tập Thẻ
+            // Tuyến đường Màn Hình Ôn Tập Thẻ
             composable("onTap") {
                 val viewModel: OnTapViewModel = viewModel { OnTapViewModel(khoDuLieu) }
                 OnTapUI(
@@ -136,19 +189,19 @@ fun DieuHuongApp(
                 )
             }
 
-            // Khai báo tuyến đường Màn Hình Thống Kê
+            // Tuyến đường Màn Hình Thống Kê
             composable("thongKe") {
                 val viewModel: ThongKeViewModel = viewModel { ThongKeViewModel(khoDuLieu) }
                 ThongKeUI(viewModel = viewModel)
             }
 
-            // Khai báo tuyến đường Màn Hình Giới Thiệu
+            // Tuyến đường Màn Hình Giới Thiệu
             composable("gioiThieu") {
                 val viewModel: GioiThieuViewModel = viewModel { GioiThieuViewModel(khoDuLieu) }
                 GioiThieuUI(viewModel = viewModel)
             }
 
-            // Khai báo tuyến đường Màn Hình Cài Đặt (không có Bottom Bar)
+            // Tuyến đường Màn Hình Cài Đặt (không có Bottom Bar)
             composable("caiDat") {
                 val viewModel: CaiDatViewModel = viewModel { CaiDatViewModel(caiDatDataStore) }
                 CaiDatUI(
@@ -157,7 +210,7 @@ fun DieuHuongApp(
                 )
             }
 
-            // Khai báo tuyến đường Màn Hình Danh Mục (không có Bottom Bar)
+            // Tuyến đường Màn Hình Quản Lý Danh Mục (không có Bottom Bar)
             composable("danhMuc") {
                 val viewModel: DanhMucViewModel = viewModel { DanhMucViewModel(khoDuLieuDanhMuc) }
                 DanhMucUI(

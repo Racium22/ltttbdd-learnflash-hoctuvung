@@ -17,9 +17,13 @@ interface TuVungDao {
     @Query("SELECT * FROM tu_vung ORDER BY id DESC")
     fun layToanBoTuVung(): Flow<List<TuVung>>
 
-    // Lấy danh sách từ vựng cần ôn tập dựa trên thời gian hiện tại
+    // Lấy danh sách từ vựng tới hạn ôn tập dựa trên thời gian hiện tại
     @Query("SELECT * FROM tu_vung WHERE ngayOnTapTiepTheo <= :thoiGianHienTai AND daThuoc = 0")
     fun layTuVungCanOnTap(thoiGianHienTai: Long): Flow<List<TuVung>>
+
+    // Lấy danh sách từ vựng tới hạn ôn tập lọc theo danh mục cụ thể
+    @Query("SELECT * FROM tu_vung WHERE ngayOnTapTiepTheo <= :thoiGianHienTai AND daThuoc = 0 AND danhMucId = :danhMucId")
+    fun layTuVungCanOnTapTheoDanhMuc(thoiGianHienTai: Long, danhMucId: String): Flow<List<TuVung>>
 
     // Lấy một từ vựng cụ thể theo khóa chính ID (dùng cho màn hình Sửa)
     @Query("SELECT * FROM tu_vung WHERE id = :id LIMIT 1")
@@ -28,6 +32,10 @@ interface TuVungDao {
     // Thực thi thao tác thêm một từ vựng mới, ghi đè nếu đã tồn tại trùng lặp ID
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun themTuVung(tuVung: TuVung)
+
+    // Thực thi thao tác thêm nhiều từ vựng cùng lúc (batch insert) trong một transaction
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun themNhieuTuVung(danhSach: List<TuVung>)
 
     // Thực thi thao tác cập nhật thông tin từ vựng
     @Update

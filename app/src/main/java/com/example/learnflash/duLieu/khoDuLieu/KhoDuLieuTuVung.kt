@@ -17,7 +17,6 @@ class KhoDuLieuTuVung(
     private val lichSuOnTapDao: LichSuOnTapDao,
     private val tuVungApi: TuVungApi,
     private val dichThuatApi: DichThuatApi,
-    // Thêm phụ thuộc FirebaseNguonDuLieu phục vụ tải dữ liệu mặc định và đồng bộ SRS
     private val firebaseNguonDuLieu: FirebaseNguonDuLieu
 ) {
 
@@ -28,6 +27,10 @@ class KhoDuLieuTuVung(
     fun layTuVungCanOnTap(thoiGianHienTai: Long): Flow<List<TuVung>> =
         tuVungDao.layTuVungCanOnTap(thoiGianHienTai)
 
+    // Lấy danh sách từ vựng tới hạn ôn tập thuộc một danh mục cụ thể
+    fun layTuVungCanOnTapTheoDanhMuc(thoiGianHienTai: Long, danhMucId: String): Flow<List<TuVung>> =
+        tuVungDao.layTuVungCanOnTapTheoDanhMuc(thoiGianHienTai, danhMucId)
+
     // Truy vấn một từ vựng theo ID để phục vụ màn hình Sửa
     suspend fun layTuVungTheoId(id: Int): TuVung? = tuVungDao.layTuVungTheoId(id)
 
@@ -35,7 +38,6 @@ class KhoDuLieuTuVung(
     suspend fun luuTuVung(tuVung: TuVung) {
         if (tuVung.id == 0) {
             tuVungDao.themTuVung(tuVung)
-            // Đẩy từ vựng mới do người dùng tạo lên Firestore để lưu đám mây
             firebaseNguonDuLieu.themTuVungLenFirestore(tuVung)
         } else {
             tuVungDao.capNhatTuVung(tuVung)
@@ -45,41 +47,37 @@ class KhoDuLieuTuVung(
     // Cập nhật tiến độ SRS vào Room và đồng bộ lên Firestore sau mỗi phiên đánh giá
     suspend fun capNhatTienDoSrs(tuVung: TuVung) {
         tuVungDao.capNhatTuVung(tuVung)
-        // Đồng bộ bất đồng bộ lên Firestore — lỗi mạng không ảnh hưởng luồng chính
         firebaseNguonDuLieu.dongBoTienDoSrs(tuVung)
-    }
-
-    // Kích hoạt tác vụ kiểm tra và tải dữ liệu mặc định từ Firestore nếu Room đang trống
-    suspend fun khoiTaoDuLieuMacDinh() {
-        firebaseNguonDuLieu.khoiTaoDuLieuMacDinh()
     }
 
     // Thực thi thao tác xóa từ vựng khỏi Room Database
     suspend fun xoaTuVung(tuVung: TuVung) = tuVungDao.xoaTuVung(tuVung)
 
+    // Kiểm tra Room và tải dữ liệu mặc định từ Firestore nếu cần — trả về true khi đã sẵn sàng
+    suspend fun khoiTaoDuLieuMacDinh(): Boolean {
+        return try {
+            firebaseNguonDuLieu.khoiTaoDuLieuMacDinh()
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     // Thực thi tra cứu phiên âm + loại từ từ Free Dictionary API và dịch nghĩa từ MyMemory API song song
     suspend fun traCuuVaDich(tuKhoa: String): Result<TuVung> {
         return try {
-            // Chạy đồng thời 2 HTTP Request bằng coroutineScope + async để giảm thời gian chờ
             coroutineScope {
-                val congViecDichThuat = async {
-                    dichThuatApi.dichVanBan(vanBanNguon = tuKhoa)
-                }
-                val congViecPhienAm = async {
-                    tuVungApi.traCuuTuVung(tuKhoa)
-                }
+                val congViecDichThuat = async { dichThuatApi.dichVanBan(vanBanNguon = tuKhoa) }
+                val congViecPhienAm = async { tuVungApi.traCuuTuVung(tuKhoa) }
 
-                // Thu thập kết quả từ 2 tác vụ bất đồng bộ
                 val phanHoiDich = congViecDichThuat.await()
                 val phanHoiPhienAm = congViecPhienAm.await()
 
-                // Trích xuất nghĩa tiếng Việt từ phản hồi MyMemory API
                 val nghiaTiengViet = if (phanHoiDich.isSuccessful &&
                     phanHoiDich.body()?.maKetQua == 200) {
                     phanHoiDich.body()?.duLieuKetQua?.vanBanDaDich ?: ""
                 } else ""
 
-                // Trích xuất phiên âm và loại từ từ phản hồi Free Dictionary API
                 val duLieuPhienAm = if (phanHoiPhienAm.isSuccessful &&
                     !phanHoiPhienAm.body().isNullOrEmpty()) {
                     phanHoiPhienAm.body()!![0]
@@ -88,16 +86,8 @@ class KhoDuLieuTuVung(
                 val phienAm = duLieuPhienAm?.phienAm ?: ""
                 val loaiTu = duLieuPhienAm?.danhSachNghia?.firstOrNull()?.loaiTu ?: ""
 
-                // Xác thực kết quả — cần có ít nhất nghĩa tiếng Việt mới trả về thành công
                 if (nghiaTiengViet.isNotEmpty()) {
-                    Result.success(
-                        TuVung(
-                            tuKhoa = tuKhoa,
-                            nghiaTiengViet = nghiaTiengViet,
-                            phienAm = phienAm,
-                            loaiTu = loaiTu
-                        )
-                    )
+                    Result.success(TuVung(tuKhoa = tuKhoa, nghiaTiengViet = nghiaTiengViet, phienAm = phienAm, loaiTu = loaiTu))
                 } else {
                     Result.failure(Exception("Không tìm được bản dịch tiếng Việt cho từ \"$tuKhoa\""))
                 }
@@ -108,36 +98,14 @@ class KhoDuLieuTuVung(
     }
 
     // --- Các hàm phục vụ Màn hình Thống kê ---
-
-    // Trả về luồng dữ liệu tổng số từ vựng
     fun demTongSoTuVung(): Flow<Int> = tuVungDao.demTongSoTuVung()
-
-    // Trả về luồng dữ liệu số từ đã thuộc
     fun demSoTuDaThuoc(): Flow<Int> = tuVungDao.demSoTuDaThuoc()
-
-    // Trả về luồng dữ liệu số từ chưa thuộc
     fun demSoTuChuaThuoc(): Flow<Int> = tuVungDao.demSoTuChuaThuoc()
-
-    // Trả về luồng dữ liệu giá trị trung bình cấp độ SRS
     fun tinhTrungBinhCapDoSrs(): Flow<Double?> = tuVungDao.tinhTrungBinhCapDoSrs()
-
-    // Trả về luồng dữ liệu giá trị cấp độ SRS cao nhất
     fun layCaoNhatCapDoSrs(): Flow<Int?> = tuVungDao.layCaoNhatCapDoSrs()
-
-    // Trả về luồng dữ liệu giá trị cấp độ SRS thấp nhất
     fun layThapNhatCapDoSrs(): Flow<Int?> = tuVungDao.layThapNhatCapDoSrs()
-
-    // Trả về luồng dữ liệu số từ vựng cần ôn tập trong ngày hôm nay
-    fun demTuVungOnTapHomNay(cuoiNgayHomNay: Long): Flow<Int> =
-        tuVungDao.demTuVungOnTapHomNay(cuoiNgayHomNay)
-
-    // Trả về luồng dữ liệu số lượt ôn tập đã hoàn thành trong ngày hôm nay
-    fun demSoLuotOnTapHomNay(batDauNgay: Long, cuoiNgay: Long): Flow<Int> =
-        lichSuOnTapDao.demSoLuotOnTapTrongNgay(batDauNgay, cuoiNgay)
-
-    // Lấy luồng dữ liệu toàn bộ lịch sử ôn tập
+    fun demTuVungOnTapHomNay(cuoiNgayHomNay: Long): Flow<Int> = tuVungDao.demTuVungOnTapHomNay(cuoiNgayHomNay)
+    fun demSoLuotOnTapHomNay(batDauNgay: Long, cuoiNgay: Long): Flow<Int> = lichSuOnTapDao.demSoLuotOnTapTrongNgay(batDauNgay, cuoiNgay)
     fun layToanBoLichSu(): Flow<List<LichSuOnTap>> = lichSuOnTapDao.layToanBoLichSu()
-
-    // Ghi nhận một phiên ôn tập mới vào Room Database
     suspend fun themLichSuOnTap(lichSu: LichSuOnTap) = lichSuOnTapDao.themLichSu(lichSu)
 }
