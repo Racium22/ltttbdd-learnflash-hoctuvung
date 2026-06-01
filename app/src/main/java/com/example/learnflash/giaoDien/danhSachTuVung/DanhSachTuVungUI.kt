@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -94,12 +97,6 @@ fun DanhSachTuVungUI(
                     IconButton(onClick = quayLai) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại")
                     }
-                },
-                actions = {
-                    // Nút kích hoạt phiên ôn tập cho danh mục hiện tại
-                    IconButton(onClick = { chuyenHuongOnTap(viewModel.danhMucId) }) {
-                        Icon(Icons.Default.PlayArrow, contentDescription = "Ôn tập danh mục này")
-                    }
                 }
             )
         },
@@ -130,6 +127,27 @@ fun DanhSachTuVungUI(
                 },
                 singleLine = true
             )
+
+            // Đọc trạng thái số từ cần ôn tập hôm nay
+            val soTuCanOnTap by viewModel.soTuCanOnTap.collectAsState()
+
+            // Nút bấm kích hoạt phiên ôn tập hoặc học tự do
+            Button(
+                onClick = { chuyenHuongOnTap(viewModel.danhMucId) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Icon(Icons.Default.PlayArrow, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                // Nhãn hiển thị linh hoạt theo số từ tới hạn
+                Text(
+                    text = if (soTuCanOnTap > 0) "Bắt đầu ôn tập ($soTuCanOnTap từ cần ôn)"
+                           else "Ôn tập tự do (Học từ mới/Ôn lại)",
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
             if (danhSachTu.isEmpty()) {
                 // Hiển thị gợi ý khi danh mục chưa có từ vựng nào

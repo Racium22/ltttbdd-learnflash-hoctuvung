@@ -32,6 +32,10 @@ class OnTapViewModel(
     private val _hoanThanhHoc = mutableStateOf(false)
     val hoanThanhHoc: State<Boolean> = _hoanThanhHoc
 
+    // Trạng thái xác định phiên ôn tập hiện tại là ôn tập tự do hay tới hạn
+    private val _laOnTapTuDo = mutableStateOf(false)
+    val laOnTapTuDo: State<Boolean> = _laOnTapTuDo
+
     // Biến lưu trữ số liệu thống kê trong phiên học
     private var soTuDung = 0
     private var soTuSai = 0
@@ -40,12 +44,25 @@ class OnTapViewModel(
     fun batDauPhienHoc() {
         viewModelScope.launch {
             val thoiGianHienTai = System.currentTimeMillis()
-            // Lọc theo danh mục nếu được truyền vào, ngược lại lấy toàn bộ
-            val danhSach = if (danhMucId != null) {
+            // Lọc theo danh mục nếu được truyền vào, ngược lại lấy toàn bộ các từ tới hạn
+            var danhSach = if (danhMucId != null) {
                 khoDuLieu.layTuVungCanOnTapTheoDanhMuc(thoiGianHienTai, danhMucId).firstOrNull()
             } else {
                 khoDuLieu.layTuVungCanOnTap(thoiGianHienTai).firstOrNull()
             } ?: emptyList()
+
+            // Nếu không có từ tới hạn, tự động tải tất cả các từ chưa thuộc để học tự do
+            if (danhSach.isEmpty()) {
+                val toanBoTu = khoDuLieu.layToanBoTuVung().firstOrNull() ?: emptyList()
+                danhSach = if (danhMucId != null) {
+                    toanBoTu.filter { it.danhMucId == danhMucId && !it.daThuoc }
+                } else {
+                    toanBoTu.filter { !it.daThuoc }
+                }
+                _laOnTapTuDo.value = true
+            } else {
+                _laOnTapTuDo.value = false
+            }
 
             _danhSachOnTap.value = danhSach
             _chiSoHienTai.value = 0

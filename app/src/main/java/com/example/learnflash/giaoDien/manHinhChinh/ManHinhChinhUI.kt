@@ -13,16 +13,24 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,6 +45,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,7 +66,9 @@ fun ManHinhChinhUI(
     chuyenHuongDanhMuc: () -> Unit
 ) {
     // Thu thập State từ ViewModel
-    val danhSachDanhMuc by viewModel.danhSachDanhMuc.collectAsState()
+    val danhSachDanhMuc by viewModel.danhSachDanhMucHienThi.collectAsState()
+    val kieuSapXep by viewModel.kieuSapXep.collectAsState()
+    val boLocTrangThai by viewModel.boLocTrangThai.collectAsState()
     val thongKe by viewModel.thongKeTuVung.collectAsState()
     val dangKhoiTao by viewModel.dangKhoiTao.collectAsState()
     val loiKhoiTao by viewModel.loiKhoiTao.collectAsState()
@@ -75,24 +87,12 @@ fun ManHinhChinhUI(
         topBar = {
             TopAppBar(
                 title = {
-                    // Khối tiêu đề gồm tên ứng dụng và dòng thống kê tổng quan
-                    Column {
-                        // Tên ứng dụng — hiển thị nổi bật ở dòng chính
-                        Text(
-                            text = "LearnFlash",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        // Dòng phụ: tổng số từ và số từ đã thuộc — hiển thị khi đã có dữ liệu
-                        if (!dangKhoiTao && thongKe.first > 0) {
-                            val tiLe = if (thongKe.first > 0) thongKe.second * 100 / thongKe.first else 0
-                            Text(
-                                text = "${thongKe.first} từ · ${thongKe.second} đã thuộc · $tiLe%",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
+                    // Tên ứng dụng — hiển thị nổi bật ở dòng chính
+                    Text(
+                        text = "LearnFlash",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
                 },
                 actions = {
                     // Nút điều hướng sang màn hình Quản lý Danh mục kèm label
@@ -177,46 +177,29 @@ fun ManHinhChinhUI(
                         .padding(paddingValues)
                         .fillMaxSize()
                 ) {
-                    // Thanh tiến trình tổng quan tỉ lệ từ đã thuộc — hiển thị phía dưới TopAppBar
-                    if (thongKe.first > 0) {
-                        LinearProgressIndicator(
-                            progress = { thongKe.second.toFloat() / thongKe.first.toFloat() },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(3.dp),
-                            color = MaterialTheme.colorScheme.primary,
-                            trackColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
-                    }
+
+                    // Thanh điều khiển chứa bộ lọc trạng thái và cách sắp xếp danh mục dạng dropdown
+                    ThanhDieuKhienDropdown(
+                        sapXepHienTai = kieuSapXep,
+                        boLocHienTai = boLocTrangThai,
+                        onDoiSapXep = { viewModel.doiKieuSapXep(it) },
+                        onDoiBoLoc = { viewModel.doiBoLocTrangThai(it) }
+                    )
 
                     if (danhSachDanhMuc.isEmpty()) {
-                        // Trạng thái trống — Firebase không có dữ liệu hoặc chưa import
+                        // Trạng thái trống — không có danh mục phù hợp bộ lọc
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(
-                                    text = "Chưa có dữ liệu",
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                Text(
-                                    text = "Kiểm tra kết nối và thử lại",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                // Nút thử tải lại khi gặp lỗi kết nối
-                                Button(onClick = { viewModel.taiLai() }) {
-                                    Text("Thử lại")
-                                }
-                            }
+                            Text(
+                                text = "Không tìm thấy danh mục nào phù hợp",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     } else {
-                        // Lưới 2 cột LazyVerticalGrid hiển thị các ô danh mục
+                        // Lưới 2 cột LazyVerticalGrid hiển thị các ô danh mục đã được lọc
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(2),
                             contentPadding = PaddingValues(12.dp),
@@ -224,11 +207,11 @@ fun ManHinhChinhUI(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            items(danhSachDanhMuc) { danhMuc ->
+                            items(danhSachDanhMuc) { mucHienThi ->
                                 // Ô danh mục — nhấn để vào danh sách từ của danh mục đó
                                 ODanhMuc(
-                                    danhMuc = danhMuc,
-                                    onClick = { chuyenHuongDanhSachTu(danhMuc.id, danhMuc.ten) }
+                                    mucHienThi = mucHienThi,
+                                    onClick = { chuyenHuongDanhSachTu(mucHienThi.danhMuc.id, mucHienThi.danhMuc.ten) }
                                 )
                             }
                         }
@@ -239,37 +222,255 @@ fun ManHinhChinhUI(
     }
 }
 
-// Thành phần Composable hiển thị một ô danh mục trong lưới
+// Thành quan Composable hiển thị một ô danh mục trong lưới kèm trạng thái màu sắc viền và badge
 @Composable
-fun ODanhMuc(danhMuc: DanhMuc, onClick: () -> Unit) {
+fun ODanhMuc(mucHienThi: DanhMucHienThi, onClick: () -> Unit) {
+    val daThuoc = mucHienThi.soTuDaThuoc
+    val tongSo = mucHienThi.tongSoTu
+    val canOn = mucHienThi.soTuCanOnTap
+
+    // Cấu hình viền và nhãn chỉ thị trạng thái học tập của danh mục
+    val (mauVien, nhanTrangThai, mauNhan) = when (mucHienThi.trangThai) {
+        TrangThaiDanhMuc.TRONG -> Triple(
+            MaterialTheme.colorScheme.outlineVariant,
+            "Chưa có từ",
+            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+        )
+        TrangThaiDanhMuc.CHUA_ON -> Triple(
+            MaterialTheme.colorScheme.outlineVariant,
+            "Chưa ôn tập",
+            MaterialTheme.colorScheme.primary
+        )
+        TrangThaiDanhMuc.DANG_ON -> Triple(
+            Color(0xFFFF9800).copy(alpha = 0.5f),
+            "Đang ôn tập",
+            Color(0xFFE65100)
+        )
+        TrangThaiDanhMuc.DA_ON -> Triple(
+            Color(0xFF4CAF50).copy(alpha = 0.5f),
+            "Đã học thuộc",
+            Color(0xFF2E7D32)
+        )
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(1.2f)
+            .aspectRatio(1.15f)
             .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, mauVien)
     ) {
         Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp)
         ) {
+            // Hiển thị nhãn số từ cần ôn tập ở góc trên bên phải dạng tròn xinh xắn
+            if (canOn > 0) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color(0xFFC62828))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "$canOn từ",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            // Cột hiển thị nội dung tên danh mục và tiến trình
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.padding(12.dp)
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // Tên danh mục — hiển thị tối đa 2 dòng, căn giữa
+                // Tên danh mục chủ đề
                 Text(
-                    text = danhMuc.ten,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.Center,
+                    text = mucHienThi.danhMuc.ten,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    modifier = Modifier.padding(end = if (canOn > 0) 36.dp else 0.dp)
+                )
+
+                // Cột hiển thị các thông tin thống kê tiến độ phụ
+                Column {
+                    // Badge trạng thái nhỏ gọn, xinh xắn
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(mauNhan.copy(alpha = 0.08f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = nhanTrangThai,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = mauNhan,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    if (tongSo > 0) {
+                        Text(
+                            text = "Tiến độ: $daThuoc / $tongSo từ",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        Text(
+                            text = "Chưa có từ vựng",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Thành phần thanh điều khiển dạng dropdown gọn gàng chứa bộ lọc trạng thái và sắp xếp
+@Composable
+fun ThanhDieuKhienDropdown(
+    sapXepHienTai: String,
+    boLocHienTai: String,
+    onDoiSapXep: (String) -> Unit,
+    onDoiBoLoc: (String) -> Unit
+) {
+    // Trạng thái kiểm soát đóng mở của dropdown menu sắp xếp
+    var moSapXep by remember { mutableStateOf(false) }
+    // Trạng thái kiểm soát đóng mở của dropdown menu bộ lọc trạng thái
+    var moBoLoc by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        // Dropdown lựa chọn sắp xếp tên danh mục
+        Box(modifier = Modifier.weight(1f)) {
+            val nhanSapXep = if (sapXepHienTai == "A_Z") "Tên A-Z" else "Tên Z-A"
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { moSapXep = true },
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Sắp xếp: $nhanSapXep",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Icon(
+                        imageVector = Icons.Default.ArrowDropDown,
+                        contentDescription = null
+                    )
+                }
+            }
+
+            DropdownMenu(
+                expanded = moSapXep,
+                onDismissRequest = { moSapXep = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Tên A-Z") },
+                    onClick = {
+                        onDoiSapXep("A_Z")
+                        moSapXep = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Tên Z-A") },
+                    onClick = {
+                        onDoiSapXep("Z_A")
+                        moSapXep = false
+                    }
+                )
+            }
+        }
+
+        // Dropdown lựa chọn lọc danh mục theo tiến trình học tập
+        Box(modifier = Modifier.weight(1f)) {
+            val nhanBoLoc = when (boLocHienTai) {
+                "CHUA_ON" -> "Chưa ôn"
+                "DANG_ON" -> "Đang ôn"
+                "DA_ON" -> "Đã ôn"
+                else -> "Tất cả"
+            }
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { moBoLoc = true },
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Trạng thái: $nhanBoLoc",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Icon(
+                        imageVector = Icons.Default.ArrowDropDown,
+                        contentDescription = null
+                    )
+                }
+            }
+
+            DropdownMenu(
+                expanded = moBoLoc,
+                onDismissRequest = { moBoLoc = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Tất cả") },
+                    onClick = {
+                        onDoiBoLoc("TAT_CA")
+                        moBoLoc = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Chưa ôn") },
+                    onClick = {
+                        onDoiBoLoc("CHUA_ON")
+                        moBoLoc = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Đang ôn") },
+                    onClick = {
+                        onDoiBoLoc("DANG_ON")
+                        moBoLoc = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Đã ôn") },
+                    onClick = {
+                        onDoiBoLoc("DA_ON")
+                        moBoLoc = false
+                    }
                 )
             }
         }

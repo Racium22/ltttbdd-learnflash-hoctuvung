@@ -42,6 +42,15 @@ class DanhSachTuVungViewModel(
         initialValue = emptyList()
     )
 
+    // Luồng StateFlow số lượng từ vựng tới hạn cần ôn tập của danh mục hiện tại
+    val soTuCanOnTap: StateFlow<Int> = khoDuLieu.layTuVungCanOnTapTheoDanhMuc(System.currentTimeMillis(), danhMucId)
+        .map { it.size }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 0
+        )
+
     // Trạng thái lưu đối tượng TuVung đang chờ xác nhận xóa
     private val _tuVungCanXoa = MutableStateFlow<TuVung?>(null)
     val tuVungCanXoa: StateFlow<TuVung?> = _tuVungCanXoa.asStateFlow()

@@ -55,6 +55,7 @@ fun OnTapUI(
     val hoanThanhHoc by viewModel.hoanThanhHoc
     val dangLatThe by viewModel.dangLatThe
     val chiSoHienTai by viewModel.chiSoHienTai
+    val laOnTapTuDo by viewModel.laOnTapTuDo
     val tuVungHienTai = viewModel.layTuVungHienTai()
 
     // Tính góc xoay nội suy (Interpolation) từ 0° đến 180° cho hiệu ứng lật thẻ
@@ -106,6 +107,17 @@ fun OnTapUI(
                     Text("Quay về màn hình chính")
                 }
             } else if (tuVungHienTai != null) {
+
+                // Nhãn hiển thị chế độ ôn tự do khi không có từ tới hạn ôn
+                if (laOnTapTuDo) {
+                    Text(
+                        text = "Chế độ: Ôn tập tự do",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.secondary,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 6.dp)
+                    )
+                }
 
                 // Nhãn hiển thị tiến độ thẻ hiện tại trong phiên học
                 Text(
