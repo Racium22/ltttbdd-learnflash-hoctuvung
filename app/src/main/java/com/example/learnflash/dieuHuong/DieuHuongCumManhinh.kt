@@ -5,7 +5,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -57,8 +56,8 @@ fun DieuHuongApp(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val tuyenHienTai = navBackStackEntry?.destination?.route
 
-    // Danh sách tuyến đường hiển thị Bottom Navigation Bar
-    val cacTuyenCoBottomBar = listOf("manHinhChinh", "onTap", "thongKe", "gioiThieu")
+    // Danh sách tuyến đường hiển thị Bottom Navigation Bar (3 mục — đã bỏ Ôn tập)
+    val cacTuyenCoBottomBar = listOf("manHinhChinh", "thongKe", "gioiThieu")
 
     Scaffold(
         bottomBar = {
@@ -71,13 +70,6 @@ fun DieuHuongApp(
                         label = { Text("Trang chủ") },
                         selected = tuyenHienTai == "manHinhChinh",
                         onClick = { navController.navigate("manHinhChinh") { popUpTo(0) } }
-                    )
-                    // Mục điều hướng Ôn tập
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Default.PlayArrow, contentDescription = "Ôn tập") },
-                        label = { Text("Ôn tập") },
-                        selected = tuyenHienTai == "onTap",
-                        onClick = { navController.navigate("onTap") { launchSingleTop = true } }
                     )
                     // Mục điều hướng Thống kê
                     NavigationBarItem(
@@ -147,7 +139,7 @@ fun DieuHuongApp(
                 )
             }
 
-            // Tuyến đường Ôn Tập lọc theo danh mục cụ thể
+            // Tuyến đường Ôn Tập lọc theo danh mục cụ thể — có nút Back vì vào từ DanhSachTuVung
             composable(
                 route = "onTapTheoDanhMuc/{danhMucId}",
                 arguments = listOf(navArgument("danhMucId") { type = NavType.StringType })
@@ -157,6 +149,7 @@ fun DieuHuongApp(
                 val viewModel: OnTapViewModel = viewModel { OnTapViewModel(khoDuLieu, danhMucId) }
                 OnTapUI(
                     viewModel = viewModel,
+                    coNutBack = true,
                     quayLai = { navController.popBackStack() }
                 )
             }
@@ -175,15 +168,6 @@ fun DieuHuongApp(
                     ChiTietViewModel(khoDuLieu, khoDuLieuDanhMuc, idTuVung, danhMucIdMacDinh)
                 }
                 ChiTietUI(
-                    viewModel = viewModel,
-                    quayLai = { navController.popBackStack() }
-                )
-            }
-
-            // Tuyến đường Màn Hình Ôn Tập Thẻ
-            composable("onTap") {
-                val viewModel: OnTapViewModel = viewModel { OnTapViewModel(khoDuLieu) }
-                OnTapUI(
                     viewModel = viewModel,
                     quayLai = { navController.popBackStack() }
                 )

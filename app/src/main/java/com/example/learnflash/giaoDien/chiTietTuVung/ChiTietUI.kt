@@ -70,7 +70,8 @@ fun ChiTietUI(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (idLa0(tuKhoa, dangTai)) "Thêm từ vựng" else "Chỉnh sửa từ vựng") },
+                // Phân biệt chế độ Thêm mới (id = 0) và Chỉnh sửa (id > 0) bằng idTuVung từ ViewModel
+                title = { Text(if (viewModel.idTuVung == 0) "Thêm từ vựng" else "Chỉnh sửa từ vựng") },
                 navigationIcon = {
                     // Nút điều hướng quay lại màn hình trước
                     IconButton(onClick = quayLai) {
@@ -190,6 +191,3 @@ fun ChiTietUI(
         ManHinhChoLoading()
     }
 }
-
-// Hàm tiện ích xác định màn hình đang ở chế độ Thêm mới (từ khóa rỗng và chưa loading)
-private fun idLa0(tuKhoa: String, dangTai: Boolean): Boolean = tuKhoa.isEmpty() && !dangTai

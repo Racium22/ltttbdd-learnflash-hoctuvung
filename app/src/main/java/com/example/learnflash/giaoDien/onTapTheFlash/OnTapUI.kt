@@ -13,11 +13,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -34,10 +38,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 // Thành phần giao diện tổng thể của màn hình lật thẻ Flashcard
+// coNutBack: true khi vào từ DanhSachTuVung, false khi vào từ Bottom Nav (không còn dùng)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OnTapUI(
     viewModel: OnTapViewModel,
+    coNutBack: Boolean = false,
     quayLai: () -> Unit
 ) {
     // Kích hoạt hàm khởi tạo danh sách ôn tập ngay khi Composable hiển thị lần đầu
@@ -66,7 +72,17 @@ fun OnTapUI(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Ôn tập thẻ") })
+            TopAppBar(
+                title = { Text("Ôn tập thẻ") },
+                // Hiển thị nút Back khi màn hình được mở từ DanhSachTuVung
+                navigationIcon = {
+                    if (coNutBack) {
+                        IconButton(onClick = quayLai) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại")
+                        }
+                    }
+                }
+            )
         }
     ) { paddingValues ->
         Column(

@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
 class ChiTietViewModel(
     private val khoDuLieu: KhoDuLieuTuVung,
     private val khoDuLieuDanhMuc: KhoDuLieuDanhMuc,
-    private val idTuVung: Int,
+    val idTuVung: Int,
     private val danhMucIdMacDinh: String = "mac_dinh"
 ) : ViewModel() {
 

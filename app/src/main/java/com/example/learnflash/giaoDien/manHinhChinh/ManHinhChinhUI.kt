@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,6 +26,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -72,18 +74,64 @@ fun ManHinhChinhUI(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("LearnFlash") },
+                title = {
+                    // Khối tiêu đề gồm tên ứng dụng và dòng thống kê tổng quan
+                    Column {
+                        // Tên ứng dụng — hiển thị nổi bật ở dòng chính
+                        Text(
+                            text = "LearnFlash",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        // Dòng phụ: tổng số từ và số từ đã thuộc — hiển thị khi đã có dữ liệu
+                        if (!dangKhoiTao && thongKe.first > 0) {
+                            val tiLe = if (thongKe.first > 0) thongKe.second * 100 / thongKe.first else 0
+                            Text(
+                                text = "${thongKe.first} từ · ${thongKe.second} đã thuộc · $tiLe%",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                },
                 actions = {
-                    // Nút điều hướng sang màn hình Quản lý Danh mục
-                    IconButton(onClick = chuyenHuongDanhMuc) {
+                    // Nút điều hướng sang màn hình Quản lý Danh mục kèm label
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .clickable { chuyenHuongDanhMuc() }
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Category,
-                            contentDescription = "Quản lý danh mục"
+                            contentDescription = "Quản lý danh mục",
+                            modifier = Modifier.size(22.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Danh mục",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    // Nút điều hướng sang màn hình Cài đặt
-                    IconButton(onClick = chuyenHuongCaiDat) {
-                        Icon(Icons.Default.Settings, contentDescription = "Cài đặt")
+                    // Nút điều hướng sang màn hình Cài đặt kèm label
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .clickable { chuyenHuongCaiDat() }
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Cài đặt",
+                            modifier = Modifier.size(22.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Cài đặt",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             )
@@ -129,13 +177,17 @@ fun ManHinhChinhUI(
                         .padding(paddingValues)
                         .fillMaxSize()
                 ) {
-                    // Thanh thống kê tổng quan hiển thị trên đầu trang
-                    Text(
-                        text = "Tổng: ${thongKe.first} từ  |  Đã thuộc: ${thongKe.second}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
+                    // Thanh tiến trình tổng quan tỉ lệ từ đã thuộc — hiển thị phía dưới TopAppBar
+                    if (thongKe.first > 0) {
+                        LinearProgressIndicator(
+                            progress = { thongKe.second.toFloat() / thongKe.first.toFloat() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(3.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    }
 
                     if (danhSachDanhMuc.isEmpty()) {
                         // Trạng thái trống — Firebase không có dữ liệu hoặc chưa import
