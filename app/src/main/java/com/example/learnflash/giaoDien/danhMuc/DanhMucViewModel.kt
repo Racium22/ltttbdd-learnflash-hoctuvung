@@ -31,6 +31,10 @@ class DanhMucViewModel(private val khoDuLieu: KhoDuLieuDanhMuc) : ViewModel() {
     private val _danhMucCanXoa = MutableStateFlow<DanhMuc?>(null)
     val danhMucCanXoa: StateFlow<DanhMuc?> = _danhMucCanXoa.asStateFlow()
 
+    // Trạng thái lưu đối tượng DanhMuc đang chờ xác nhận sửa
+    private val _danhMucCanSua = MutableStateFlow<DanhMuc?>(null)
+    val danhMucCanSua: StateFlow<DanhMuc?> = _danhMucCanSua.asStateFlow()
+
     // Trạng thái lưu thông báo kết quả thao tác để hiển thị SnackBar
     private val _thongBao = MutableStateFlow("")
     val thongBao: StateFlow<String> = _thongBao.asStateFlow()
@@ -113,6 +117,40 @@ class DanhMucViewModel(private val khoDuLieu: KhoDuLieuDanhMuc) : ViewModel() {
     // Hủy thao tác xóa — đóng hộp thoại xác nhận
     fun huyXoaDanhMuc() {
         _danhMucCanXoa.value = null
+    }
+
+    // Mở hộp thoại sửa danh mục — gán thông tin hiện tại vào form nhập
+    fun moHopThoaiSua(danhMuc: DanhMuc) {
+        _danhMucCanSua.value = danhMuc
+        _tenDanhMucMoi.value = danhMuc.ten
+        _moTaDanhMucMoi.value = danhMuc.moTa
+    }
+
+    // Đóng hộp thoại sửa danh mục
+    fun dongHopThoaiSua() {
+        _danhMucCanSua.value = null
+        _tenDanhMucMoi.value = ""
+        _moTaDanhMucMoi.value = ""
+    }
+
+    // Thực thi cập nhật thông tin danh mục sau khi sửa
+    fun luuDanhMucSua() {
+        val danhMuc = _danhMucCanSua.value ?: return
+        if (_tenDanhMucMoi.value.isBlank()) {
+            _thongBao.value = "Tên danh mục không được để trống"
+            return
+        }
+        viewModelScope.launch {
+            val danhMucCapNhat = danhMuc.copy(
+                ten = _tenDanhMucMoi.value.trim(),
+                moTa = _moTaDanhMucMoi.value.trim()
+            )
+            khoDuLieu.luuDanhMuc(danhMucCapNhat)
+            _danhMucCanSua.value = null
+            _tenDanhMucMoi.value = ""
+            _moTaDanhMucMoi.value = ""
+            _thongBao.value = "Đã cập nhật danh mục \"${danhMucCapNhat.ten}\""
+        }
     }
 
     // Đặt lại chuỗi thông báo về rỗng sau khi SnackBar đã hiển thị

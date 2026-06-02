@@ -17,10 +17,9 @@ class KhoDuLieuDanhMuc(
     // Truy vấn một danh mục theo ID — dùng khi cần hiển thị tên danh mục trên UI
     suspend fun layDanhMucTheoId(id: String): DanhMuc? = danhMucDao.layDanhMucTheoId(id)
 
-    // Thực thi thêm mới hoặc cập nhật danh mục vào Room Database và đồng bộ lên Firestore
+    // Thực thi thêm mới hoặc cập nhật danh mục vào Room Database (đã bỏ đồng bộ Firestore)
     suspend fun luuDanhMuc(danhMuc: DanhMuc) {
         danhMucDao.themHoacCapNhatDanhMuc(danhMuc)
-        firebaseNguonDuLieu.themDanhMucLenFirestore(danhMuc)
     }
 
     // Thực thi xóa danh mục — chỉ cho phép xóa danh mục do người dùng tạo (laMacDinh = false)

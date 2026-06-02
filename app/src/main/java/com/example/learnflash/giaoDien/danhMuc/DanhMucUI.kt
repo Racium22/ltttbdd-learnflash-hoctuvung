@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -53,6 +54,7 @@ fun DanhMucUI(
     val danhSachDanhMuc by viewModel.danhSachDanhMuc.collectAsState()
     val hienHopThoaiThem by viewModel.hienHopThoaiThem.collectAsState()
     val danhMucCanXoa by viewModel.danhMucCanXoa.collectAsState()
+    val danhMucCanSua by viewModel.danhMucCanSua.collectAsState()
     val thongBao by viewModel.thongBao.collectAsState()
     val tenDanhMucMoi by viewModel.tenDanhMucMoi.collectAsState()
     val moTaDanhMucMoi by viewModel.moTaDanhMucMoi.collectAsState()
@@ -105,6 +107,7 @@ fun DanhMucUI(
                 // Thành phần giao diện con hiển thị một dòng thông tin danh mục
                 ItemDanhMuc(
                     danhMuc = danhMuc,
+                    onSua = { viewModel.moHopThoaiSua(danhMuc) },
                     onXoa = { viewModel.yeuCauXoaDanhMuc(danhMuc) }
                 )
             }
@@ -152,6 +155,46 @@ fun DanhMucUI(
         )
     }
 
+    // Hộp thoại nhập liệu sửa danh mục — hiển thị khi danhMucCanSua khác null
+    if (danhMucCanSua != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dongHopThoaiSua() },
+            title = { Text("Sửa danh mục") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Trường sửa tên danh mục
+                    OutlinedTextField(
+                        value = tenDanhMucMoi,
+                        onValueChange = { viewModel.capNhatTenDanhMuc(it) },
+                        label = { Text("Tên danh mục *") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    // Trường sửa mô tả danh mục
+                    OutlinedTextField(
+                        value = moTaDanhMucMoi,
+                        onValueChange = { viewModel.capNhatMoTaDanhMuc(it) },
+                        label = { Text("Mô tả (tùy chọn)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                // Nút xác nhận cập nhật thay đổi
+                Button(onClick = { viewModel.luuDanhMucSua() }) {
+                    Text("Lưu")
+                }
+            },
+            dismissButton = {
+                // Nút hủy đóng hộp thoại
+                TextButton(onClick = { viewModel.dongHopThoaiSua() }) {
+                    Text("Hủy")
+                }
+            }
+        )
+    }
+
     // Hộp thoại xác nhận xóa danh mục — hiển thị khi danhMucCanXoa khác null
     if (danhMucCanXoa != null) {
         AlertDialog(
@@ -174,7 +217,7 @@ fun DanhMucUI(
 
 // Thành phần Composable hiển thị một dòng thông tin danh mục trong LazyColumn
 @Composable
-fun ItemDanhMuc(danhMuc: DanhMuc, onXoa: () -> Unit) {
+fun ItemDanhMuc(danhMuc: DanhMuc, onSua: () -> Unit, onXoa: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -219,6 +262,10 @@ fun ItemDanhMuc(danhMuc: DanhMuc, onXoa: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+            }
+            // Nút sửa hiển thị với mọi danh mục (kể cả mặc định)
+            IconButton(onClick = onSua) {
+                Icon(Icons.Default.Edit, contentDescription = "Sửa danh mục")
             }
             // Nút xóa chỉ hiển thị với danh mục người dùng tạo (không phải mặc định)
             if (!danhMuc.laMacDinh) {
