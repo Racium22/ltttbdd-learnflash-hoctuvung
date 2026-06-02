@@ -183,7 +183,7 @@ fun DieuHuongApp(
 
             // Tuyến đường Màn Hình Giới Thiệu
             composable("gioiThieu") {
-                val viewModel: GioiThieuViewModel = viewModel { GioiThieuViewModel(khoDuLieu) }
+                val viewModel: GioiThieuViewModel = viewModel { GioiThieuViewModel(khoDuLieu, khoDuLieuDanhMuc) }
                 GioiThieuUI(viewModel = viewModel)
             }
 

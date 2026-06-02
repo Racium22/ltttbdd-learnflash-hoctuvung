@@ -53,9 +53,6 @@ fun GioiThieuUI(viewModel: GioiThieuViewModel) {
     // Trạng thái lưu trữ URI được chọn tạm thời để chờ xác nhận chế độ nhập
     var uriNapDuLieuTam by remember { mutableStateOf<Uri?>(null) }
 
-    // Trạng thái lưu trữ định dạng tệp tin được chọn (true là JSON, false là CSV)
-    var laDinhDangJson by remember { mutableStateOf(true) }
-
     // Trạng thái kiểm soát việc hiển thị hộp thoại lựa chọn chế độ nhập dữ liệu
     var hienThiHopThoaiCheDo by remember { mutableStateOf(false) }
 
@@ -75,25 +72,6 @@ fun GioiThieuUI(viewModel: GioiThieuViewModel) {
     ) { diaChiUri ->
         diaChiUri?.let {
             uriNapDuLieuTam = it
-            laDinhDangJson = true
-            hienThiHopThoaiCheDo = true
-        }
-    }
-
-    // Bộ kích hoạt hệ thống chọn vị trí lưu và đặt tên cho tệp CSV xuất ra
-    val boKichHoatXuatCsv = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("text/csv")
-    ) { diaChiUri ->
-        diaChiUri?.let { viewModel.xuatDuLieuCsv(context, it) }
-    }
-
-    // Bộ kích hoạt hệ thống chọn tệp CSV cần nhập vào ứng dụng
-    val boKichHoatNhapCsv = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { diaChiUri ->
-        diaChiUri?.let {
-            uriNapDuLieuTam = it
-            laDinhDangJson = false
             hienThiHopThoaiCheDo = true
         }
     }
@@ -214,40 +192,6 @@ fun GioiThieuUI(viewModel: GioiThieuViewModel) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Nhóm nút xuất/nhập dữ liệu định dạng CSV
-            Text(
-                text = "Quản lý dữ liệu — CSV",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Hàng nút Xuất và Nhập CSV đặt song song
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Nút kích hoạt tác vụ xuất dữ liệu ra file CSV
-                Button(
-                    onClick = { boKichHoatXuatCsv.launch("learnflash_tuvung.csv") },
-                    modifier = Modifier.weight(1f),
-                    enabled = !dangXuLy
-                ) {
-                    Text("Xuất CSV")
-                }
-                // Nút kích hoạt tác vụ nhập dữ liệu từ file CSV
-                OutlinedButton(
-                    onClick = { boKichHoatNhapCsv.launch("*/*") },
-                    modifier = Modifier.weight(1f),
-                    enabled = !dangXuLy
-                ) {
-                    Text("Nhập CSV")
-                }
-            }
-
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
@@ -364,13 +308,9 @@ fun GioiThieuUI(viewModel: GioiThieuViewModel) {
                     onClick = {
                         // Tắt hộp thoại hiển thị
                         hienThiHopThoaiCheDo = false
-                        // Kiểm tra URI tạm thời và gọi hàm nạp dữ liệu phù hợp
+                        // Kiểm tra URI tạm thời và gọi hàm nạp dữ liệu JSON
                         uriNapDuLieuTam?.let { uri ->
-                            if (laDinhDangJson) {
-                                viewModel.nhapDuLieuJson(context, uri, cheDoDuocChon)
-                            } else {
-                                viewModel.nhapDuLieuCsv(context, uri, cheDoDuocChon)
-                            }
+                            viewModel.nhapDuLieuJson(context, uri, cheDoDuocChon)
                         }
                         // Xóa dữ liệu URI tạm thời sau khi xử lý xong
                         uriNapDuLieuTam = null

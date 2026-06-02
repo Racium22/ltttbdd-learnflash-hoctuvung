@@ -5,7 +5,9 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.learnflash.duLieu.khoDuLieu.KhoDuLieuDanhMuc
 import com.example.learnflash.duLieu.khoDuLieu.KhoDuLieuTuVung
+import com.example.learnflash.duLieu.local.thucThe.DanhMuc
 import com.example.learnflash.duLieu.local.thucThe.TuVung
 import com.google.gson.Gson
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,7 +30,10 @@ enum class CheDoNapDuLieu(val moTa: String) {
 }
 
 // Lớp ViewModel xử lý nghiệp vụ xuất/nhập dữ liệu cho màn hình Giới thiệu
-class GioiThieuViewModel(private val khoDuLieu: KhoDuLieuTuVung) : ViewModel() {
+class GioiThieuViewModel(
+    private val khoDuLieu: KhoDuLieuTuVung,
+    private val khoDuLieuDanhMuc: KhoDuLieuDanhMuc
+) : ViewModel() {
 
     // Trạng thái (State) kiểm soát vòng xoay Loading khi đang xử lý tác vụ IO
     private val _dangXuLy = MutableStateFlow(false)
@@ -37,41 +42,6 @@ class GioiThieuViewModel(private val khoDuLieu: KhoDuLieuTuVung) : ViewModel() {
     // Trạng thái (State) lưu thông báo kết quả sau khi xử lý xong để hiển thị SnackBar
     private val _thongBaoKetQua = MutableStateFlow("")
     val thongBaoKetQua: StateFlow<String> = _thongBaoKetQua.asStateFlow()
-
-    // Hàm tiện ích tạo phần đầu tiêu đề CSV theo thứ tự các trường của Entity TuVung
-    private fun taoTieuDeCsv(): String {
-        return "id,tuKhoa,nghiaTiengViet,phienAm,loaiTu,capDoSrs,ngayOnTapTiepTheo,daThuoc"
-    }
-
-    // Hàm tiện ích chuyển đổi một đối tượng TuVung thành một dòng văn bản CSV
-    private fun chuyenTuVungThanhDongCsv(tuVung: TuVung): String {
-        return "${tuVung.id},\"${tuVung.tuKhoa}\",\"${tuVung.nghiaTiengViet}\"," +
-                "\"${tuVung.phienAm}\",\"${tuVung.loaiTu}\"," +
-                "${tuVung.capDoSrs},${tuVung.ngayOnTapTiepTheo},${tuVung.daThuoc}"
-    }
-
-    // Hàm tiện ích phân tích một dòng văn bản CSV thành đối tượng TuVung
-    private fun phanTichDongCsv(dong: String): TuVung? {
-        return try {
-            // Tách dòng CSV theo dấu phẩy, loại bỏ ký tự nháy kép
-            val cacCot = dong.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)".toRegex())
-            val loaiBoNhay = { s: String -> s.trim().removeSurrounding("\"") }
-            TuVung(
-                id = 0,
-                tuKhoa = loaiBoNhay(cacCot[1]),
-                nghiaTiengViet = loaiBoNhay(cacCot[2]),
-                phienAm = loaiBoNhay(cacCot[3]),
-                loaiTu = loaiBoNhay(cacCot[4]),
-                capDoSrs = cacCot[5].trim().toIntOrNull() ?: 0,
-                ngayOnTapTiepTheo = cacCot[6].trim().toLongOrNull() ?: System.currentTimeMillis(),
-                daThuoc = cacCot[7].trim().toBoolean()
-            )
-        } catch (e: Exception) {
-            Log.e("LearnFlash", "Lỗi phân tích dòng CSV: $dong", e)
-            null
-        }
-    }
-
     // Thực thi xuất toàn bộ từ vựng ra file JSON thông qua Storage Access Framework
     fun xuatDuLieuJson(context: Context, uri: Uri) {
         _dangXuLy.value = true
@@ -176,6 +146,51 @@ class GioiThieuViewModel(private val khoDuLieu: KhoDuLieuTuVung) : ViewModel() {
         return soLuongThanhCong
     }
 
+    // Hàm phụ trợ chuẩn hóa và kiểm tra tính hợp lệ của danh sách từ vựng nhập vào
+    private suspend fun chuanHoaVaKiemTraDanhSach(danhSach: List<TuVung>): List<TuVung> {
+        // Lấy danh sách toàn bộ danh mục hiện có trong máy
+        val danhSachDanhMuc = khoDuLieuDanhMuc.layToanBoDanhMuc().firstOrNull() ?: emptyList()
+        // Tạo tập hợp ID danh mục có khả năng thay đổi để cập nhật ngầm
+        val tapHopIdDanhMuc = danhSachDanhMuc.map { it.id }.toMutableSet()
+        return danhSach.mapNotNull { tu ->
+            // Kiểm tra các trường bắt buộc không được null hoặc rỗng
+            val tuKhoaChuan = tu.tuKhoa.trim()
+            val nghiaChuan = tu.nghiaTiengViet.trim()
+            if (tuKhoaChuan.isEmpty() || nghiaChuan.isEmpty()) {
+                return@mapNotNull null
+            }
+            // Đối soát danh mục: nếu rỗng thì đưa về danh mục mặc định
+            val danhMucIdChuan = tu.danhMucId.trim()
+            val danhMucFinal = if (danhMucIdChuan.isEmpty()) {
+                "mac_dinh"
+            } else {
+                // Nếu danh mục chưa tồn tại trong máy thì tự động tạo mới
+                if (!tapHopIdDanhMuc.contains(danhMucIdChuan)) {
+                    val tenDanhMucMoi = danhMucIdChuan.replaceFirstChar { it.uppercase() }
+                    val danhMucMoi = DanhMuc(
+                        id = danhMucIdChuan,
+                        ten = tenDanhMucMoi,
+                        moTa = "Danh mục tự động tạo khi nhập dữ liệu",
+                        laMacDinh = false
+                    )
+                    // Lưu danh mục mới vào Room cục bộ và Firestore ngầm
+                    khoDuLieuDanhMuc.luuDanhMuc(danhMucMoi)
+                    // Thêm vào tập hợp để không bị trùng lặp tạo lại cho các từ vựng sau
+                    tapHopIdDanhMuc.add(danhMucIdChuan)
+                }
+                danhMucIdChuan
+            }
+            // Tạo đối tượng từ vựng đã được chuẩn hóa thông tin
+            tu.copy(
+                tuKhoa = tuKhoaChuan,
+                nghiaTiengViet = nghiaChuan,
+                phienAm = tu.phienAm.trim(),
+                loaiTu = tu.loaiTu.trim(),
+                danhMucId = danhMucFinal
+            )
+        }
+    }
+
     // Thực thi đọc file JSON từ URI do người dùng chọn và nạp lại vào Room Database theo chế độ
     fun nhapDuLieuJson(context: Context, uri: Uri, cheDo: CheDoNapDuLieu) {
         _dangXuLy.value = true
@@ -187,12 +202,14 @@ class GioiThieuViewModel(private val khoDuLieu: KhoDuLieuTuVung) : ViewModel() {
                     val jsonString = boDoc.readText()
                     // Chuyển đổi chuỗi văn bản JSON sang mảng các đối tượng từ vựng
                     val danhSach = Gson().fromJson(jsonString, Array<TuVung>::class.java).toList()
-                    if (danhSach.isEmpty()) {
+                    // Chuẩn hóa và kiểm tra tính hợp lệ của dữ liệu nhập
+                    val danhSachChuanHoa = chuanHoaVaKiemTraDanhSach(danhSach)
+                    if (danhSachChuanHoa.isEmpty()) {
                         _thongBaoKetQua.value = "Tệp tin JSON không chứa dữ liệu từ vựng hợp lệ"
                         return@launch
                     }
                     // Thực thi nạp dữ liệu theo chế độ đã chọn
-                    val soLuongThanhCong = thucThiNapDuLieu(danhSach, cheDo)
+                    val soLuongThanhCong = thucThiNapDuLieu(danhSachChuanHoa, cheDo)
                     _thongBaoKetQua.value = "Đã nhập JSON thành công: $soLuongThanhCong từ vựng (${cheDo.moTa})"
                 }
             } catch (e: Exception) {
@@ -204,65 +221,7 @@ class GioiThieuViewModel(private val khoDuLieu: KhoDuLieuTuVung) : ViewModel() {
         }
     }
 
-    // Thực thi xuất toàn bộ từ vựng ra file CSV thông qua Storage Access Framework
-    fun xuatDuLieuCsv(context: Context, uri: Uri) {
-        _dangXuLy.value = true
-        viewModelScope.launch {
-            try {
-                // Lấy toàn bộ danh sách từ vựng dưới Room Database
-                val danhSach = khoDuLieu.layToanBoTuVung().firstOrNull() ?: emptyList()
-                // Kiểm tra nếu danh sách từ vựng trống thì dừng tác vụ xuất
-                if (danhSach.isEmpty()) {
-                    _thongBaoKetQua.value = "Không có từ vựng nào trong cơ sở dữ liệu để xuất"
-                    return@launch
-                }
-                // Xây dựng chuỗi văn bản định dạng CSV có chứa tiêu đề
-                val noiDungCsv = buildString {
-                    appendLine(taoTieuDeCsv())
-                    danhSach.forEach { appendLine(chuyenTuVungThanhDongCsv(it)) }
-                }
-                // Mở luồng ghi dữ liệu ghi nhận vào tệp do người dùng chọn
-                context.contentResolver.openOutputStream(uri)?.use { luongGhi ->
-                    luongGhi.write(noiDungCsv.toByteArray())
-                }
-                _thongBaoKetQua.value = "Đã xuất CSV thành công: ${danhSach.size} từ vựng"
-            } catch (e: Exception) {
-                Log.e("LearnFlash", "Lỗi xuất CSV", e)
-                _thongBaoKetQua.value = "Xuất CSV thất bại: ${e.message}"
-            } finally {
-                _dangXuLy.value = false
-            }
-        }
-    }
 
-    // Thực thi đọc file CSV từ URI do người dùng chọn và nạp lại vào Room Database theo chế độ
-    fun nhapDuLieuCsv(context: Context, uri: Uri, cheDo: CheDoNapDuLieu) {
-        _dangXuLy.value = true
-        viewModelScope.launch {
-            try {
-                // Mở luồng đọc dữ liệu từ tệp tin người dùng chọn
-                context.contentResolver.openInputStream(uri)?.use { luongDoc ->
-                    val boDoc = luongDoc.bufferedReader()
-                    // Bỏ qua dòng tiêu đề đầu tiên trong file CSV
-                    val cacDong = boDoc.readLines().drop(1)
-                    // Chuyển đổi từng dòng văn bản sang đối tượng từ vựng
-                    val danhSach = cacDong.mapNotNull { phanTichDongCsv(it) }
-                    if (danhSach.isEmpty()) {
-                        _thongBaoKetQua.value = "Tệp tin CSV không chứa dữ liệu từ vựng hợp lệ"
-                        return@launch
-                    }
-                    // Thực thi nạp dữ liệu theo chế độ đã chọn
-                    val soLuongThanhCong = thucThiNapDuLieu(danhSach, cheDo)
-                    _thongBaoKetQua.value = "Đã nhập CSV thành công: $soLuongThanhCong từ vựng (${cheDo.moTa})"
-                }
-            } catch (e: Exception) {
-                Log.e("LearnFlash", "Lỗi nhập CSV", e)
-                _thongBaoKetQua.value = "Nhập CSV thất bại: ${e.message}"
-            } finally {
-                _dangXuLy.value = false
-            }
-        }
-    }
 
     // Đặt lại chuỗi thông báo về rỗng sau khi SnackBar đã hiển thị xong
     fun daHienThiThongBao() {
