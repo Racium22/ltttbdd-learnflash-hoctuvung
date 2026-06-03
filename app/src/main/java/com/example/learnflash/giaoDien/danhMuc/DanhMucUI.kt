@@ -39,7 +39,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.example.learnflash.duLieu.local.thucThe.DanhMuc
 
@@ -239,21 +242,25 @@ fun ItemDanhMuc(danhMuc: DanhMuc, onSua: () -> Unit, onXoa: () -> Unit) {
                 modifier = Modifier.padding(end = 12.dp)
             )
             Column(modifier = Modifier.weight(1f)) {
-                // Tên danh mục kèm nhãn Mặc định nếu là danh mục hệ thống
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = danhMuc.ten,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                    if (danhMuc.laMacDinh) {
-                        Text(
-                            text = "  (Mặc định)",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
+                // Tên danh mục kèm nhãn Mặc định nếu là danh mục hệ thống (gộp chung một Text để tránh tràn đè dòng khi tên dài)
+                Text(
+                    text = buildAnnotatedString {
+                        append(danhMuc.ten)
+                        if (danhMuc.laMacDinh) {
+                            withStyle(
+                                style = SpanStyle(
+                                    fontWeight = FontWeight.Normal,
+                                    fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            ) {
+                                append("  (Mặc định)")
+                            }
+                        }
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium
+                )
                 // Mô tả danh mục nếu có nội dung
                 if (danhMuc.moTa.isNotEmpty()) {
                     Text(

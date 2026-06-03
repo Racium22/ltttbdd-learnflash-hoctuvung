@@ -144,16 +144,16 @@ fun GioiThieuUI(viewModel: GioiThieuViewModel) {
             // Nút bấm kích hoạt Intent hệ thống mở file PDF từ URL trực tuyến
             Button(
                 onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                        // URL trỏ đến file PDF hướng dẫn sử dụng thực tế — cập nhật khi deploy
-                        data = Uri.parse("https://drive.google.com/file/d/huong_dan_learnflash/view")
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://drive.google.com/file/d/1YjU8CJuFKAcE9vavwnXRr3RRrSRcwgqT/view?usp=sharing")).apply {
+                        // Ép buộc hệ thống chỉ mở qua trình duyệt web (tránh tự động kích hoạt app Google Drive)
+                        selector = Intent(Intent.ACTION_VIEW, Uri.parse("http://"))
                     }
                     context.startActivity(intent)
                 },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !dangXuLy
             ) {
-                Text("Xem Hướng Dẫn Sử Dụng (PDF)")
+                Text("Xem Hướng Dẫn Sử Dụng")
             }
 
             Spacer(modifier = Modifier.height(24.dp))
