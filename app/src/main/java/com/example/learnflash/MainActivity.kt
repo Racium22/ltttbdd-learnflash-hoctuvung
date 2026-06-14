@@ -1,5 +1,4 @@
 package com.example.learnflash
-
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -48,7 +47,7 @@ class MainActivity : ComponentActivity() {
         val khoDuLieu = KhoDuLieuTuVung(tuVungDao, lichSuDao, api, dichThuatApi, firebaseNguonDuLieu)
 
         // Bơm phụ thuộc vào Kho dữ liệu danh mục
-        val khoDuLieuDanhMuc = KhoDuLieuDanhMuc(danhMucDao, firebaseNguonDuLieu)
+        val khoDuLieuDanhMuc = KhoDuLieuDanhMuc(danhMucDao)
 
         // Khởi tạo DataStore quản lý cài đặt người dùng (Dark Mode, Mục tiêu học ngày)
         val caiDatDataStore = CaiDatDataStore(this)

@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -45,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.example.learnflash.duLieu.local.thucThe.DanhMuc
+import com.example.learnflash.giaoDien.thanhPhanChung.HopThoaiXacNhanXoa
 
 // Thành phần giao diện cấu thành màn hình Quản lý Danh mục từ vựng
 @OptIn(ExperimentalMaterial3Api::class)
@@ -145,7 +147,12 @@ fun DanhMucUI(
             },
             confirmButton = {
                 // Nút xác nhận lưu danh mục mới
-                Button(onClick = { viewModel.luuDanhMucMoi() }) {
+                Button(onClick = { viewModel.luuDanhMucMoi() }
+/*                   colors = ButtonDefaults.buttonColors(
+                        containerColor = androidx.compose.ui.graphics.Color(0xFFFF9800), // Màu nền cam
+                        contentColor = androidx.compose.ui.graphics.Color.White          // Màu chữ trắng
+                   )*/
+                ) {
                     Text("Lưu")
                 }
             },
@@ -200,20 +207,10 @@ fun DanhMucUI(
 
     // Hộp thoại xác nhận xóa danh mục — hiển thị khi danhMucCanXoa khác null
     if (danhMucCanXoa != null) {
-        AlertDialog(
-            onDismissRequest = { viewModel.huyXoaDanhMuc() },
-            title = { Text("Xác nhận xóa") },
-            text = { Text("Xóa danh mục \"${danhMucCanXoa?.ten}\"? Thao tác không thể hoàn tác.") },
-            confirmButton = {
-                Button(onClick = { viewModel.xacNhanXoaDanhMuc() }) {
-                    Text("Xóa")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.huyXoaDanhMuc() }) {
-                    Text("Hủy")
-                }
-            }
+        HopThoaiXacNhanXoa(
+            tenDoiTuong = danhMucCanXoa?.ten ?: "",
+            onXacNhan = { viewModel.xacNhanXoaDanhMuc() },
+            onHuy = { viewModel.huyXoaDanhMuc() }
         )
     }
 }

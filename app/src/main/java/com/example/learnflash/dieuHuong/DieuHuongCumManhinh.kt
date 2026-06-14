@@ -56,7 +56,7 @@ fun DieuHuongApp(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val tuyenHienTai = navBackStackEntry?.destination?.route
 
-    // Danh sách tuyến đường hiển thị Bottom Navigation Bar (3 mục — đã bỏ Ôn tập)
+    // Danh sách tuyến đường hiển thị Bottom Navigation Bar (3 mục )
     val cacTuyenCoBottomBar = listOf("manHinhChinh", "thongKe", "gioiThieu")
 
     Scaffold(

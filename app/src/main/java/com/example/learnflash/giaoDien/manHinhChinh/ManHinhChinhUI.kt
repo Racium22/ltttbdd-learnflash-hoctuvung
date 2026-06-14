@@ -187,16 +187,34 @@ fun ManHinhChinhUI(
                     )
 
                     if (danhSachDanhMuc.isEmpty()) {
-                        // Trạng thái trống — không có danh mục phù hợp bộ lọc
+                        // Trạng thái trống — không có danh mục phù hợp bộ lọc hoặc lỗi tải dữ liệu ban đầu
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = "Không tìm thấy danh mục nào phù hợp",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                // Văn bản thông báo trạng thái trống hoặc thông báo lỗi hệ thống
+                                Text(
+                                    text = if (loiKhoiTao.isNotEmpty()) loiKhoiTao else "Không tìm thấy danh mục nào phù hợp",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(horizontal = 24.dp)
+                                )
+                                // Chỉ hiển thị nút thử lại khi phát hiện có lỗi khởi tạo dữ liệu xảy ra
+                                if (loiKhoiTao.isNotEmpty()) {
+                                    Button(
+                                        onClick = {
+                                            viewModel.taiLai()
+                                        }
+                                    ) {
+                                        Text("Thử lại")
+                                    }
+                                }
+                            }
                         }
                     } else {
                         // Lưới 2 cột LazyVerticalGrid hiển thị các ô danh mục đã được lọc

@@ -3,6 +3,7 @@ package com.example.learnflash.giaoDien.thanhPhanChung
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -18,20 +19,33 @@ fun ManHinhChoLoading() {
     }
 }
 
-// Thành phần hộp thoại thông báo lỗi hoặc cảnh báo chung cho toàn ứng dụng
+// Thành phần hộp thoại hiển thị yêu cầu xác nhận xóa một đối tượng dữ liệu
 @Composable
-fun HopThoaiCanhBaoLoi(
-    tieuDe: String,
-    noiDung: String,
-    onXacNhan: () -> Unit
+fun HopThoaiXacNhanXoa(
+    tenDoiTuong: String,
+    onXacNhan: () -> Unit,
+    onHuy: () -> Unit
 ) {
     AlertDialog(
-        onDismissRequest = onXacNhan,
-        title = { Text(text = tieuDe) },
-        text = { Text(text = noiDung) },
+        onDismissRequest = onHuy,
+        title = {
+            // Tiêu đề của hộp thoại xác nhận
+            Text(text = "Xác nhận xóa")
+        },
+        text = {
+            // Nội dung thông báo hiển thị chi tiết tên đối tượng cần xóa
+            Text(text = "Xóa \"$tenDoiTuong\"? Thao tác không thể hoàn tác.")
+        },
         confirmButton = {
-            TextButton(onClick = onXacNhan) {
-                Text("Đồng ý")
+            // Nút bấm thực hiện hành động xác nhận xóa dữ liệu
+            Button(onClick = onXacNhan) {
+                Text("Xóa")
+            }
+        },
+        dismissButton = {
+            // Nút bấm thực hiện hành động hủy bỏ không xóa dữ liệu
+            TextButton(onClick = onHuy) {
+                Text("Hủy")
             }
         }
     )

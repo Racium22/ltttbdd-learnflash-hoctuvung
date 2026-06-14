@@ -40,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.learnflash.duLieu.local.thucThe.TuVung
+import com.example.learnflash.giaoDien.thanhPhanChung.HopThoaiXacNhanXoa
 
 // Thành phần giao diện màn hình danh sách từ vựng theo danh mục
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,20 +58,10 @@ fun DanhSachTuVungUI(
 
     // Hộp thoại xác nhận xóa từ vựng — đặt NGOÀI Scaffold để không bị lồng lambda
     if (tuVungCanXoa != null) {
-        AlertDialog(
-            onDismissRequest = { viewModel.huyXoaTuVung() },
-            title = { Text("Xác nhận xóa") },
-            text = { Text("Xóa từ \"${tuVungCanXoa?.tuKhoa}\"? Thao tác không thể hoàn tác.") },
-            confirmButton = {
-                Button(onClick = { viewModel.xacNhanXoaTuVung() }) {
-                    Text("Xóa")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.huyXoaTuVung() }) {
-                    Text("Hủy")
-                }
-            }
+        HopThoaiXacNhanXoa(
+            tenDoiTuong = tuVungCanXoa?.tuKhoa ?: "",
+            onXacNhan = { viewModel.xacNhanXoaTuVung() },
+            onHuy = { viewModel.huyXoaTuVung() }
         )
     }
 
